@@ -1,40 +1,39 @@
-/// A potentially polymorphic lens family.
-pub struct LensFStatic<S, T, A, B, F, G> where F: Fn(S) -> (A, G), G: Fn(B) -> T {
-    /// The underlying indexed store comonad coalgebroid.
-    pub run: F,
+use std::ops::*;
+
+/// The type of all lens families.
+pub trait Lens<S, T, A, B> {
+    type F: Deref<Target = Fn(B) -> T>;
+    fn run(&self, v: S) -> (A, Self::F);
 }
 
-pub type LensF<S, T, A, B> = LensFStatic<S, T, A, B, Box<Fn(S) -> (A, Box<Fn(B) -> T>)>;
-
-/// A simple, non-polymorphic lens.
-pub type Lens<S, A> = LensF<S, S, A, A>;
-
-impl<S, T, A, B> LensF<S, T, A, B> {
-    /// Simple shim for the underlying `run` function.
-    pub fn run<'a>(&'a self, v: S) {
-        (self.run)(v)
+impl<S, T, A, B, F0: Deref<Target = Fn(B) -> T>> Lens<S, T, A, B, F = F0> {
+    pub fn get(&self, v: S) -> A {
+        self.run(v).0
     }
-
-    /// Reading-order lens family composition.
-    pub fn and_then<'a, 'b, V, W>(&'a self, other: &'b LensF<A, B, V, W>) -> LensF<S, T, V, W> {
-        unimplemented!()
+    
+    pub fn set(&self, v: S, x: B) -> T {
+        (self.run(v).1)(x)
     }
-
-    /// Categorical-order lens family composition.
-    pub fn compose<'a, 'b, V, W>(&'a self, other: &'b LensF<V, W, S, T>) -> LensF<V, W, A, B> {
-        other.and_then(&self)
+    
+    pub fn modify<F1: Fn(A) -> B>(&self, v: S, f: F1) -> T {
+        let (x, g) = self.run(v);
+        g(f(x))
     }
 }
 
-impl<S, T> LensF<S, T, S, T> {
-    /// The identity lens family.
-    pub fn id() -> LensF<S, T, S, T> {
-        LensF { run: Box::new(move |v| (v, Box::new(move |x| x))) }
+pub struct LensRef<'l, S, T, A, B> {
+    _run: &'l Fn(S) -> (A, &'l Fn(B) -> T),
+}
+
+impl<'l, S, T, A, B> LensRef<'l, S, T, A, B> {
+    pub fn new(f: &'l Fn(S) -> (A, &'l Fn(B) -> T)) -> Self {
+        LensRef { _run: f }
     }
 }
 
-impl<S, T> Default for LensF<S, T, S, T> {
-    fn default() -> LensF<S, T, S, T> {
-        LensF::id()
+impl<'l, S, T, A, B> Lens<S, T, A, B> for LensRef<'l, S, T, A, B> {
+    type F = &'l ((Fn(A) -> B) + 'l);
+    fn run(&self, v: S) -> (A, &'l Fn(A) -> B) {
+        self._run(v)
     }
 }

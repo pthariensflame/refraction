@@ -2,3 +2,7 @@
 name = "refraction"
 version = "0.1.0"
 authors = ["Alexander Altman <alexanderaltman@me.com>"]
+
+[dev-dependencies]
+quickcheck = "*"
+quickcheck_macros = "*"
