@@ -5,4 +5,3 @@ authors = ["Alexander Altman <alexanderaltman@me.com>"]
 
 [dev-dependencies]
 quickcheck = "*"
-quickcheck_macros = "*"
