@@ -1,39 +1,76 @@
 use std::ops::*;
+use std::marker::PhantomData;
 
 /// The type of all lens families.
-pub trait Lens<S, T, A, B> {
-    type F: Deref<Target = Fn(B) -> T>;
-    fn run(&self, v: S) -> (A, Self::F);
+pub trait Lens<S, T, A, B>: Clone {
+    fn get(&self, v: S) -> A;
+    
+    fn set(&self, v: S, x: B) -> T;
+    
+    fn modify<F: FnOnce(A) -> B>(&self, v: S, f: F) -> T where S: Clone {
+    	self.set(v.clone(), f(self.get(v)))
+    }
 }
 
-impl<S, T, A, B, F0: Deref<Target = Fn(B) -> T>> Lens<S, T, A, B, F = F0> {
-    pub fn get(&self, v: S) -> A {
-        self.run(v).0
+pub struct Identity<S, T> {
+	phantom_stst : PhantomData<Fn(S) -> (S, Box<Fn(T) -> T>)>,
+}
+
+impl<S, T> Identity<S, T> {
+	pub fn mk() -> Self {
+		Identity { phantom_stst: PhantomData, }
+	}
+}
+
+impl<S, T> Clone for Identity<S, T> {
+	fn clone(&self) -> Self {
+		Self::mk()
+	}
+}
+
+impl<S, T> Lens<S, T, S, T> for Identity<S, T> {
+    fn get(&self, v: S) -> S {
+    	v
     }
     
-    pub fn set(&self, v: S, x: B) -> T {
-        (self.run(v).1)(x)
+    fn set(&self, _v: S, x: T) -> T {
+    	x
     }
     
-    pub fn modify<F1: Fn(A) -> B>(&self, v: S, f: F1) -> T {
-        let (x, g) = self.run(v);
-        g(f(x))
+    fn modify<F: FnOnce(S) -> T>(&self, v: S, f: F) -> T {
+    	f(v)
     }
 }
 
-pub struct LensRef<'l, S, T, A, B> {
-    _run: &'l Fn(S) -> (A, &'l Fn(B) -> T),
+pub struct Compose<S, T, A, B, V, W, LF: Lens<S, T, A, B>, LS: Lens<A, B, V, W>> {
+	first: LF,
+	second: LS,
+	phantom_stab: PhantomData<Fn(S) -> (A, Box<Fn(B) -> T>)>,
+	phantom_abvw: PhantomData<Fn(A) -> (V, Box<Fn(W) -> B>)>,
 }
 
-impl<'l, S, T, A, B> LensRef<'l, S, T, A, B> {
-    pub fn new(f: &'l Fn(S) -> (A, &'l Fn(B) -> T)) -> Self {
-        LensRef { _run: f }
+impl<S, T, A, B, V, W, LF: Lens<S, T, A, B>, LS: Lens<A, B, V, W>> Compose<S, T, A, B, V, W, LF, LS> {
+	pub fn of(f: LF, s: LS) -> Self {
+		Compose { first: f, second: s, phantom_stab: PhantomData, phantom_abvw: PhantomData }
+	}
+}
+
+impl<S, T, A, B, V, W, LF: Lens<S, T, A, B>, LS: Lens<A, B, V, W>> Clone for Compose<S, T, A, B, V, W, LF, LS> {
+	fn clone(&self) -> Self {
+		Self::of(self.first.clone(), self.second.clone())
+	}
+}
+
+impl<S: Clone, T, A: Clone, B, V, W, LF: Lens<S, T, A, B>, LS: Lens<A, B, V, W>> Lens<S, T, V, W> for Compose<S, T, A, B, V, W, LF, LS> {
+    fn get(&self, v: S) -> V {
+    	self.second.get(self.first.get(v))
     }
-}
-
-impl<'l, S, T, A, B> Lens<S, T, A, B> for LensRef<'l, S, T, A, B> {
-    type F = &'l ((Fn(A) -> B) + 'l);
-    fn run(&self, v: S) -> (A, &'l Fn(A) -> B) {
-        self._run(v)
+    
+    fn set(&self, v: S, x: W) -> T {
+    	self.first.set(v.clone(), self.second.set(self.first.get(v), x))
+    }
+    
+    fn modify<F: FnOnce(V) -> W>(&self, v: S, f: F) -> T {
+    	self.first.modify(v, |x| self.second.modify(x, f))
     }
 }
