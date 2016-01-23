@@ -1,7 +1,8 @@
 use std::ops::Deref;
 use std::marker::PhantomData;
+use super::{Identity, Compose, Fst, Snd};
 
-/// The type of all lens families.
+/// The supertype of all lens families.
 pub trait Lens<S, T, A, B> {
     fn get(&self, v: S) -> A;
     
@@ -12,23 +13,9 @@ pub trait Lens<S, T, A, B> {
     fn modify<F: FnOnce(A) -> B>(&self, v: S, f: F) -> T;
 }
 
-pub type LensS<S, A> = Lens<S, S, A, A>;
-
-pub struct Identity<S, T> {
-	phantom_stst : PhantomData<Fn(S) -> (S, Box<Fn(T) -> T>)>,
-}
-
-impl<S, T> Identity<S, T> {
-	pub fn mk() -> Self {
-		Identity { phantom_stst: PhantomData, }
-	}
-}
-
-impl<S, T> Clone for Identity<S, T> {
-	fn clone(&self) -> Self {
-		Self::mk()
-	}
-}
+/// The supertype of all simple lenses.
+pub trait LensS<S, A>: Lens<S, S, A, A> {}
+impl<S, A, L: Lens<S, S, A, A> + ?Sized> LensS<S, A> for L {}
 
 impl<S, T> Lens<S, T, S, T> for Identity<S, T> {
     fn get(&self, v: S) -> S {
@@ -44,26 +31,7 @@ impl<S, T> Lens<S, T, S, T> for Identity<S, T> {
     }
 }
 
-pub struct Compose<S, T, A, B, V, W, LF: Lens<S, T, A, B>, LS: Lens<A, B, V, W>> {
-	first: LF,
-	second: LS,
-	phantom_stab: PhantomData<Fn(S) -> (A, Box<Fn(B) -> T>)>,
-	phantom_abvw: PhantomData<Fn(A) -> (V, Box<Fn(W) -> B>)>,
-}
-
-impl<S, T, A, B, V, W, LF: Lens<S, T, A, B>, LS: Lens<A, B, V, W>> Compose<S, T, A, B, V, W, LF, LS> {
-	pub fn of(f: LF, s: LS) -> Self {
-		Compose { first: f, second: s, phantom_stab: PhantomData, phantom_abvw: PhantomData }
-	}
-}
-
-impl<S, T, A, B, V, W, LF: Lens<S, T, A, B> + Clone, LS: Lens<A, B, V, W> + Clone> Clone for Compose<S, T, A, B, V, W, LF, LS> {
-	fn clone(&self) -> Self {
-		Self::of(self.first.clone(), self.second.clone())
-	}
-}
-
-impl<S, T, A, B, V, W, LF: Lens<S, T, A, B>, LS: Lens<A, B, V, W>> Lens<S, T, V, W> for Compose<S, T, A, B, V, W, LF, LS> {
+impl<S, T, A, B, V, W, LF: Lens<S, T, A, B>, LS: Lens<A, B, V, W> + ?Sized> Lens<S, T, V, W> for Compose<S, T, A, B, V, W, LF, LS> {
     fn get(&self, v: S) -> V {
     	self.second.get(self.first.get(v))
     }
@@ -77,17 +45,107 @@ impl<S, T, A, B, V, W, LF: Lens<S, T, A, B>, LS: Lens<A, B, V, W>> Lens<S, T, V,
     }
 }
 
-impl<S, T, A, B, G: Deref<Target=Fn(B) -> T>> Lens<S, T, A, B> for Fn(S) -> (A, G) {
+#[derive(Debug)]
+pub struct LensFn<S, A, H, G: Fn(S) -> (A, H) + ?Sized> {
+	phantom_g: PhantomData<Box<Fn(S) -> (A, H)>>,
+	pub underlying: G,
+}
+
+impl<S, A, H, G: Fn(S) -> (A, H) + ?Sized> LensFn<S, A, H, G> {
+	pub fn new(f: G) -> Self where G: Sized {
+		LensFn {
+			phantom_g: PhantomData,
+			underlying: f,
+		}
+	}
+	
+	pub fn invoke(&self, v: S) -> (A, H) {
+		let ref f = self.underlying;
+		f(v)
+	}
+}
+
+impl<S, T, A, B, H: Deref<Target=Fn(B) -> T>, G: Fn(S) -> (A, H) + ?Sized> Lens<S, T, A, B> for LensFn<S, A, H, G> {
 	fn get(&self, v: S) -> A {
-		self(v).0
+		self.invoke(v).0
 	}
 	
 	fn set(&self, v: S, x: B) -> T {
-		(self(v).1)(x)
+		(self.invoke(v).1)(x)
 	}
 	
 	fn modify<F: FnOnce(A) -> B>(&self, v: S, f: F) -> T {
-		let (x, g) = self(v);
-		g(f(x))
+		let t = self.invoke(v);
+		(t.1)(f(t.0))
+	}
+}
+
+impl<'l, S, T, A, B, L: Lens<S, T, A, B> + ?Sized> Lens<S, T, A, B> for &'l L {
+	fn get(&self, v: S) -> A {
+		(**self).get(v)
+	}
+	
+	fn set(&self, v: S, x: B) -> T {
+		(**self).set(v, x)
+	}
+	
+	fn modify<F: FnOnce(A) -> B>(&self, v: S, f: F) -> T {
+		(**self).modify(v, f)
+	}
+}
+
+impl<'l, S, T, A, B, L: Lens<S, T, A, B> + ?Sized> Lens<S, T, A, B> for &'l mut L {
+	fn get(&self, v: S) -> A {
+		(**self).get(v)
+	}
+	
+	fn set(&self, v: S, x: B) -> T {
+		(**self).set(v, x)
+	}
+	
+	fn modify<F: FnOnce(A) -> B>(&self, v: S, f: F) -> T {
+		(**self).modify(v, f)
+	}
+}
+
+impl<S, T, A, B, L: Lens<S, T, A, B> + ?Sized> Lens<S, T, A, B> for Box<L> {
+	fn get(&self, v: S) -> A {
+		(**self).get(v)
+	}
+	
+	fn set(&self, v: S, x: B) -> T {
+		(**self).set(v, x)
+	}
+	
+	fn modify<F: FnOnce(A) -> B>(&self, v: S, f: F) -> T {
+		(**self).modify(v, f)
+	}
+}
+
+impl<A0, A1, B0> Lens<(A0, A1), (B0, A1), A0, B0> for Fst<A0, A1, B0> {
+	fn get(&self, v: (A0, A1)) -> A0 {
+		v.0
+	}
+	
+	fn set(&self, v: (A0, A1), x: B0) -> (B0, A1) {
+		(x, v.1)
+	}
+	
+	fn modify<F: FnOnce(A0) -> B0>(&self, v: (A0, A1), f: F) -> (B0, A1) {
+		(f(v.0), v.1)
+	}
+}
+
+impl<A0, A1, B1> Lens<(A0, A1), (A0, B1), A1, B1> for Snd<A0, A1, B1> {
+	fn get(&self, v: (A0, A1)) -> A1 {
+		v.1
+	}
+	
+	fn set(&self, v: (A0, A1), x: B1) -> (A0, B1) {
+		(v.0, x)
+	}
+	
+	fn modify<F: FnOnce(A1) -> B1>(&self, v: (A0, A1), f: F) -> (A0, B1) {
+		(v.0, f(v.1))
 	}
 }
