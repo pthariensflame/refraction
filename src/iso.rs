@@ -8,39 +8,39 @@ pub trait Iso<S, T, A, B>: Lens<S, T, A, B> + Prism<S, T, A, B> {}
 pub trait IsoS<S, A>: Iso<S, S, A, A> + LensS<S, A> + PrismS<S, A> {}
 impl<S, A, L: Iso<S, S, A, A> + ?Sized> IsoS<S, A> for L {}
 
-impl<S, T> Iso<S, T, S, T> for Identity<S, T> {}
+impl<S, T> Iso<S, T, S, T> for Identity {}
 
 impl<S, T, A, B, V, W, LF: Iso<S, T, A, B>, LS: Iso<A, B, V, W> + ?Sized>
-    Iso<S, T, V, W> for Compose<S, T, A, B, V, W, LF, LS> {}
+    Iso<S, T, V, W> for Compose<LF, A, B, LS> {}
 
 impl<B, A, T, S, L: Iso<B, A, T, S>> Lens<S, T, A, B> for Invert<L> {
     fn get(&self, v: S) -> A {
-        self.deinvert().inject(v)
+        self.deinvert_ref().inject(v)
     }
 
     fn set(&self, _v: S, x: B) -> T {
-        self.deinvert().get(x)
+        self.deinvert_ref().get(x)
     }
 
     fn modify<F: FnOnce(A) -> B>(&self, v: S, f: F) -> T {
-        let l = self.deinvert();
+        let l = self.deinvert_ref();
         l.get(f(l.inject(v)))
     }
 }
 
 impl<B, A, T, S, L: Iso<B, A, T, S>> Prism<S, T, A, B> for Invert<L> {
     fn try_get(&self, v: S) -> Result<A, T> {
-        Ok(self.deinvert().inject(v))
+        Ok(self.deinvert_ref().inject(v))
     }
 
     fn inject(&self, v: B) -> T {
-        self.deinvert().get(v)
+        self.deinvert_ref().get(v)
     }
 }
 
 impl<B, A, T, S, L: Iso<B, A, T, S>> Iso<S, T, A, B> for Invert<L> {}
 
-#[derive(Debug)]
+#[derive(Clone,Copy,Debug)]
 pub struct IsoFn<G, H: ?Sized> {
     pub proj: G,
     pub inj: H,

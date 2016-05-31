@@ -17,7 +17,7 @@ pub trait Lens<S, T, A, B> {
 pub trait LensS<S, A>: Lens<S, S, A, A> {}
 impl<S, A, L: Lens<S, S, A, A> + ?Sized> LensS<S, A> for L {}
 
-impl<S, T> Lens<S, T, S, T> for Identity<S, T> {
+impl<S, T> Lens<S, T, S, T> for Identity {
     fn get(&self, v: S) -> S {
         v
     }
@@ -32,7 +32,7 @@ impl<S, T> Lens<S, T, S, T> for Identity<S, T> {
 }
 
 impl<S, T, A, B, V, W, LF: Lens<S, T, A, B>, LS: Lens<A, B, V, W> + ?Sized>
-    Lens<S, T, V, W> for Compose<S, T, A, B, V, W, LF, LS> {
+    Lens<S, T, V, W> for Compose<LF, A, B, LS> {
     fn get(&self, v: S) -> V {
     	self.second.get(self.first.get(v))
     }
@@ -46,9 +46,9 @@ impl<S, T, A, B, V, W, LF: Lens<S, T, A, B>, LS: Lens<A, B, V, W> + ?Sized>
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone,Copy,Debug)]
 pub struct LensFn<S, A, H, G: Fn(S) -> (A, H) + ?Sized> {
-    phantom_g: PhantomData<Box<Fn(S) -> (A, H)>>,
+    phantom_g: PhantomData<Fn(S) -> (A, H)>,
     pub underlying: G,
 }
 
@@ -126,7 +126,7 @@ impl<S, T, A, B, L: Lens<S, T, A, B> + ?Sized> Lens<S, T, A, B> for Box<L> {
     }
 }
 
-impl<A0, A1, B0> Lens<(A0, A1), (B0, A1), A0, B0> for Fst<A0, A1, B0> {
+impl<A0, A1, B0> Lens<(A0, A1), (B0, A1), A0, B0> for Fst {
     fn get(&self, v: (A0, A1)) -> A0 {
         v.0
     }
@@ -140,7 +140,7 @@ impl<A0, A1, B0> Lens<(A0, A1), (B0, A1), A0, B0> for Fst<A0, A1, B0> {
     }
 }
 
-impl<A0, A1, B1> Lens<(A0, A1), (A0, B1), A1, B1> for Snd<A0, A1, B1> {
+impl<A0, A1, B1> Lens<(A0, A1), (A0, B1), A1, B1> for Snd {
     fn get(&self, v: (A0, A1)) -> A1 {
         v.1
     }

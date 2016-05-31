@@ -12,7 +12,7 @@ pub trait Prism<S, T, A, B> {
 pub trait PrismS<S, A>: Prism<S, S, A, A> {}
 impl<S, A, L: Prism<S, S, A, A> + ?Sized> PrismS<S, A> for L {}
 
-impl<S, T> Prism<S, T, S, T> for Identity<S, T> {
+impl<S, T> Prism<S, T, S, T> for Identity {
     fn try_get(&self, v: S) -> Result<S, T> {
         Ok(v)
     }
@@ -23,7 +23,7 @@ impl<S, T> Prism<S, T, S, T> for Identity<S, T> {
 }
 
 impl<S, T, A, B, V, W, LF: Prism<S, T, A, B>, LS: Prism<A, B, V, W> + ?Sized>
-    Prism<S, T, V, W> for Compose<S, T, A, B, V, W, LF, LS> {
+    Prism<S, T, V, W> for Compose<LF, A, B, LS> {
 	fn try_get(&self, v: S) -> Result<V, T> {
 		match self.first.try_get(v) {
 			Ok(q) => match self.second.try_get(q) {
