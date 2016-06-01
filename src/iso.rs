@@ -1,93 +1,34 @@
-use std::ops::Deref;
-use super::{Lens, LensS, Prism, PrismS, Identity, Compose, Invert};
+use super::{Compose, Identity, Invert, Lens, Prism};
 
 /// The supertype of all isomorphism families.
-pub trait Iso<S, T, A, B>: Lens<S, T, A, B> + Prism<S, T, A, B> {}
+pub trait Iso: Lens + Prism {}
 
-/// The supertype of all simple isomorphisms.
-pub trait IsoS<S, A>: Iso<S, S, A, A> + LensS<S, A> + PrismS<S, A> {}
-impl<S, A, L: Iso<S, S, A, A> + ?Sized> IsoS<S, A> for L {}
+impl<S, T> Iso for Identity<S, T> {}
 
-impl<S, T> Iso<S, T, S, T> for Identity {}
-
-impl<S, T, A, B, V, W, LF: Iso<S, T, A, B>, LS: Iso<A, B, V, W> + ?Sized>
-    Iso<S, T, V, W> for Compose<LF, A, B, LS> {}
-
-impl<B, A, T, S, L: Iso<B, A, T, S>> Lens<S, T, A, B> for Invert<L> {
-    fn get(&self, v: S) -> A {
-        self.deinvert_ref().inject(v)
-    }
-
-    fn set(&self, _v: S, x: B) -> T {
-        self.deinvert_ref().get(x)
-    }
-
-    fn modify<F: FnOnce(A) -> B>(&self, v: S, f: F) -> T {
-        let l = self.deinvert_ref();
-        l.get(f(l.inject(v)))
-    }
+impl<LF: Iso, LS: Iso + ?Sized> Iso for Compose<LF, LS>
+  where LS::InitialTarget: Into<LF::InitialSource>, LF::FinalSource: Into<LS::FinalTarget> {
 }
 
-impl<B, A, T, S, L: Iso<B, A, T, S>> Prism<S, T, A, B> for Invert<L> {
-    fn try_get(&self, v: S) -> Result<A, T> {
-        Ok(self.deinvert_ref().inject(v))
-    }
+impl<L: Iso> Lens for Invert<L> {
+  fn get(&self, v: Self::InitialSource) -> Self::InitialTarget { self.deinvert_ref().inject(v) }
 
-    fn inject(&self, v: B) -> T {
-        self.deinvert_ref().get(v)
-    }
+  fn set(&self, _v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource {
+    self.deinvert_ref().get(x)
+  }
+
+  fn modify<F>(&self, v: Self::InitialSource, f: F) -> Self::FinalSource
+    where F: FnOnce(Self::InitialTarget) -> Self::FinalTarget {
+    let l = self.deinvert_ref();
+    l.get(f(l.inject(v)))
+  }
 }
 
-impl<B, A, T, S, L: Iso<B, A, T, S>> Iso<S, T, A, B> for Invert<L> {}
+impl<L: Iso> Prism for Invert<L> {
+  fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
+    Ok(self.deinvert_ref().inject(v))
+  }
 
-#[derive(Clone,Copy,Debug)]
-pub struct IsoFn<G, H: ?Sized> {
-    pub proj: G,
-    pub inj: H,
+  fn inject(&self, v: Self::FinalTarget) -> Self::FinalSource { self.deinvert_ref().get(v) }
 }
 
-impl<G, H: ?Sized> IsoFn<G, H> {
-    pub fn fst(&self) -> &G {
-        &(self.proj)
-    }
-
-    pub fn snd(&self) -> &H {
-        &(self.inj)
-    }
-}
-
-
-impl<S, T, A, B, G: Deref<Target=Fn(S) -> A>, H: Deref<Target=Fn(B) -> T> + ?Sized>
-    Lens<S, T, A, B> for IsoFn<G, H> {
-	fn get(&self, v: S) -> A {
-		(self.fst())(v)
-	}
-
-    fn set(&self, _v: S, x: B) -> T {
-    	(self.snd())(x)
-    }
-
-    fn modify<F: FnOnce(A) -> B>(&self, v: S, f: F) -> T {
-    	(self.snd())(f((self.fst())(v)))
-    }
-}
-
-impl<S, T, A, B, G: Deref<Target=Fn(S) -> A>, H: Deref<Target=Fn(B) -> T>>
-    Prism<S, T, A, B> for IsoFn<G, H> {
-	fn try_get(&self, v: S) -> Result<A, T> {
-		Ok((self.fst())(v))
-	}
-
-	fn inject(&self, v: B) -> T {
-		(self.snd())(v)
-	}
-}
-
-impl<S, T, A, B, G: Deref<Target=Fn(S) -> A>, H: Deref<Target=Fn(B) -> T>>
-    Iso<S, T, A, B> for IsoFn<G, H> {}
-
-impl<'l, S, T, A, B, L: Iso<S, T, A, B> + ?Sized> Iso<S, T, A, B> for &'l L {}
-
-impl<'l, S, T, A, B, L: Iso<S, T, A, B> + ?Sized> Iso<S, T, A, B> for &'l mut L {}
-
-impl<S, T, A, B, L: Iso<S, T, A, B> + ?Sized> Iso<S, T, A, B> for Box<L> {}
+impl<L: Iso> Iso for Invert<L> {}
