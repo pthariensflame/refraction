@@ -3,6 +3,7 @@
 //! of [the Haskell `lens` package](https://hackage.haskell.org/package/lens),
 //! but
 //! reworked and reorganized to become more Rusty.
+extern crate void;
 use std::marker::PhantomData;
 use std::fmt::{self, Debug, Formatter};
 
@@ -126,6 +127,25 @@ impl<S, A, T, B> Conv<S, A, T, B>
   }
 }
 
+impl<S, A, T, B> Debug for Conv<S, A, T, B>
+  where S: Into<A>, B: Into<T> {
+  fn fmt(&self, fm: &mut Formatter) -> fmt::Result {
+    fm.debug_struct("Conv")
+      .field("phantom_sa", &self.phantom_sa)
+      .field("phantom_bt", &self.phantom_bt)
+      .finish()
+  }
+}
+
+impl<S, A, T, B> Clone for Conv<S, A, T, B>
+  where S: Into<A>, B: Into<T> {
+  fn clone(&self) -> Self { *self }
+
+  fn clone_from(&mut self, source: &Self) { *self = *source; }
+}
+
+impl<S, A, T, B> Copy for Conv<S, A, T, B> where S: Into<A>, B: Into<T> {}
+
 impl<S, A, T, B> Default for Conv<S, A, T, B>
   where S: Into<A>, B: Into<T> {
   fn default() -> Self { Self::mk() }
@@ -153,3 +173,5 @@ pub use iso::*;
 
 mod ops;
 pub use ops::*;
+
+pub mod terminal;
