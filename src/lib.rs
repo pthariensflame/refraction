@@ -181,9 +181,6 @@ pub use prism::*;
 mod iso;
 pub use iso::*;
 
-mod equality;
-pub use equality::*;
-
 mod ops;
 pub use ops::*;
 
