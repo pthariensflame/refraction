@@ -7,7 +7,7 @@ extern crate void;
 use std::marker::PhantomData;
 use std::fmt::{self, Debug, Formatter};
 
-/// The base trait for all lenticuloids.
+/// The supertype of all lenticuloids.
 pub trait Lenticuloid {
   type InitialSource;
 
@@ -175,3 +175,11 @@ mod ops;
 pub use ops::*;
 
 pub mod terminal;
+
+pub mod refs;
+
+pub mod errors;
+
+pub mod access;
+
+pub mod collections;

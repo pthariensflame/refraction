@@ -1,3 +1,5 @@
+//! These lenticuloids deal with the trivial and the impossible; that is, they
+//! operate with values of types `()` and `Void`.
 use std::marker::PhantomData;
 use std::fmt::{self, Debug, Formatter};
 use void::{Void, unreachable};

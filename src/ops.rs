@@ -1,11 +1,12 @@
 use super::{Compose, Invert, Lenticuloid};
 
-/// Extension `trait` for lenticuloid composition (in either order).
+/// Extension `trait` for lenticuloid composition in categorical order.
 pub trait ComposeExt<Other>: Lenticuloid + Sized
   where Other: Lenticuloid<InitialTarget = Self::InitialSource, FinalTarget = Self::FinalSource> {
   fn compose(self, other: Other) -> Compose<Self, Other>;
 }
 
+/// Extension `trait` for lenticuloid composition in intuitive order.
 pub trait AndThenExt<Other: Lenticuloid>
   : Lenticuloid<InitialTarget = Other::InitialSource, FinalTarget = Other::FinalSource> + Sized
   where Other: Lenticuloid {
@@ -25,7 +26,7 @@ impl<This, Other> AndThenExt<Other> for This
   fn and_then(self, other: Other) -> Compose<Other, Self> { Compose::of(other, self) }
 }
 
-/// Extension trait for lenticuloid inversion.
+/// Extension `trait` for lenticuloid inversion.
 pub trait InvertExt: Lenticuloid + Sized {
   fn invert(self) -> Invert<Self>;
 }
