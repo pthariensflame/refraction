@@ -79,8 +79,8 @@ impl<LF, LS> Compose<LF, LS> {
   }
 }
 
-impl<LF: Lenticuloid, LS: Lenticuloid + ?Sized> Lenticuloid for Compose<LF, LS>
-  where LS::InitialTarget: Into<LF::InitialSource>, LF::FinalSource: Into<LS::FinalTarget> {
+impl<LF: Lenticuloid, LS: ?Sized> Lenticuloid for Compose<LF, LS>
+  where LS: Lenticuloid<InitialTarget = LF::InitialSource, FinalTarget = LF::FinalSource> {
   type InitialSource = LS::InitialSource;
 
   type InitialTarget = LF::InitialTarget;
@@ -92,13 +92,12 @@ impl<LF: Lenticuloid, LS: Lenticuloid + ?Sized> Lenticuloid for Compose<LF, LS>
 
 /// The inversion of a lenticuloid.
 #[derive(Clone,Copy,Debug,Default)]
-pub struct Invert<L: ?Sized>(L);
+pub struct Invert<L: ?Sized> {
+  deinvert: L,
+}
 
-impl<L: ?Sized> Invert<L> {
-  fn deinvert_ref(&self) -> &L {
-    let &Invert(ref res) = self;
-    res
-  }
+impl<L> Invert<L> {
+  pub fn of(l: L) -> Self { Invert { deinvert: l } }
 }
 
 impl<L: Lenticuloid + ?Sized> Lenticuloid for Invert<L> {
@@ -109,6 +108,38 @@ impl<L: Lenticuloid + ?Sized> Lenticuloid for Invert<L> {
   type FinalSource = L::InitialTarget;
 
   type FinalTarget = L::InitialSource;
+}
+
+/// A lenticuloid that handles lossless conversions.
+pub struct Conv<S, A, T = S, B = A> {
+  phantom_sa: PhantomData<Fn(S) -> A>,
+  phantom_bt: PhantomData<Fn(B) -> T>,
+}
+
+impl<S, A, T, B> Conv<S, A, T, B>
+  where S: Into<A>, B: Into<T> {
+  pub fn mk() -> Self {
+    Conv {
+      phantom_sa: PhantomData,
+      phantom_bt: PhantomData,
+    }
+  }
+}
+
+impl<S, A, T, B> Default for Conv<S, A, T, B>
+  where S: Into<A>, B: Into<T> {
+  fn default() -> Self { Self::mk() }
+}
+
+impl<S, A, T, B> Lenticuloid for Conv<S, A, T, B>
+  where S: Into<A>, B: Into<T> {
+  type InitialSource = S;
+
+  type InitialTarget = A;
+
+  type FinalSource = T;
+
+  type FinalTarget = B;
 }
 
 mod lens;

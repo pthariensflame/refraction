@@ -1,4 +1,4 @@
-use super::{Compose, Identity, Lenticuloid};
+use super::{Compose, Conv, Identity, Invert, Iso, Lenticuloid};
 
 /// The supertype of all prism families.
 pub trait Prism: Lenticuloid {
@@ -13,14 +13,14 @@ impl<S, T> Prism for Identity<S, T> {
   fn inject(&self, v: T) -> T { v }
 }
 
-impl<LF: Prism, LS: Prism + ?Sized> Prism for Compose<LF, LS>
-  where LS::InitialTarget: Into<LF::InitialSource>, LF::FinalSource: Into<LS::FinalTarget> {
+impl<LF: Prism, LS: ?Sized> Prism for Compose<LF, LS>
+  where LS: Prism<InitialTarget = LF::InitialSource, FinalTarget = LF::FinalSource> {
   fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
     match self.second.try_get(v) {
       Ok(q) => {
-        match self.first.try_get(q.into()) {
+        match self.first.try_get(q) {
           Ok(x) => Ok(x),
-          Err(r) => Err(self.second.inject(r.into())),
+          Err(r) => Err(self.second.inject(r)),
         }
       },
       Err(w) => Err(w),
@@ -28,6 +28,23 @@ impl<LF: Prism, LS: Prism + ?Sized> Prism for Compose<LF, LS>
   }
 
   fn inject(&self, v: Self::FinalTarget) -> Self::FinalSource {
-    self.second.inject(self.first.inject(v).into())
+    self.second.inject(self.first.inject(v))
   }
+}
+
+impl<L: Iso> Prism for Invert<L> {
+  fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
+    Ok(self.deinvert.inject(v))
+  }
+
+  fn inject(&self, v: Self::FinalTarget) -> Self::FinalSource { self.deinvert.get(v) }
+}
+
+impl<S, A, T, B> Prism for Conv<S, A, T, B>
+  where S: Into<A>, B: Into<T> {
+  fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
+    Ok(v.into())
+  }
+
+  fn inject(&self, v: Self::FinalTarget) -> Self::FinalSource { v.into() }
 }

@@ -3,5 +3,8 @@ name = "refraction"
 version = "0.0.1"
 authors = ["Alexander Altman <alexanderaltman@me.com>"]
 
+[dependencies]
+void = "~1.0.2"
+
 [dev-dependencies]
-quickcheck = "*"
+quickcheck = "~0.2.27"
