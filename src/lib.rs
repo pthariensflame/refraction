@@ -117,61 +117,6 @@ impl<L: Lenticuloid + ?Sized> Lenticuloid for Invert<L> {
   type FinalTarget = L::InitialSource;
 }
 
-/// A lenticuloid that handles lossless conversions.
-pub struct Conv<S, A, T = S, B = A> {
-  phantom_sa: PhantomData<Fn(S) -> A>,
-  phantom_bt: PhantomData<Fn(B) -> T>,
-}
-
-impl<S, A, T, B> Conv<S, A, T, B>
-  where S: Into<A>, B: Into<T> {
-  #[inline]
-  pub fn mk() -> Self {
-    Conv {
-      phantom_sa: PhantomData,
-      phantom_bt: PhantomData,
-    }
-  }
-}
-
-impl<S, A, T, B> Debug for Conv<S, A, T, B>
-  where S: Into<A>, B: Into<T> {
-  fn fmt(&self, fm: &mut Formatter) -> fmt::Result {
-    fm.debug_struct("Conv")
-      .field("phantom_sa", &self.phantom_sa)
-      .field("phantom_bt", &self.phantom_bt)
-      .finish()
-  }
-}
-
-impl<S, A, T, B> Clone for Conv<S, A, T, B>
-  where S: Into<A>, B: Into<T> {
-  #[inline]
-  fn clone(&self) -> Self { *self }
-
-  #[inline]
-  fn clone_from(&mut self, source: &Self) { *self = *source; }
-}
-
-impl<S, A, T, B> Copy for Conv<S, A, T, B> where S: Into<A>, B: Into<T> {}
-
-impl<S, A, T, B> Default for Conv<S, A, T, B>
-  where S: Into<A>, B: Into<T> {
-  #[inline]
-  fn default() -> Self { Self::mk() }
-}
-
-impl<S, A, T, B> Lenticuloid for Conv<S, A, T, B>
-  where S: Into<A>, B: Into<T> {
-  type InitialSource = S;
-
-  type InitialTarget = A;
-
-  type FinalSource = T;
-
-  type FinalTarget = B;
-}
-
 mod lens;
 pub use lens::*;
 
@@ -183,6 +128,8 @@ pub use iso::*;
 
 mod ops;
 pub use ops::*;
+
+pub mod conv;
 
 pub mod terminal;
 

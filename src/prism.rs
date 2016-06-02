@@ -1,4 +1,4 @@
-use super::{Compose, Conv, Identity, Invert, Iso, Lenticuloid};
+use super::{Compose, Identity, Invert, Iso, Lenticuloid};
 
 /// The supertype of all prism families.
 pub trait Prism: Lenticuloid {
@@ -42,15 +42,4 @@ impl<L: Iso> Prism for Invert<L> {
 
   #[inline]
   fn inject(&self, v: Self::FinalTarget) -> Self::FinalSource { self.deinvert.get(v) }
-}
-
-impl<S, A, T, B> Prism for Conv<S, A, T, B>
-  where S: Into<A>, B: Into<T> {
-  #[inline]
-  fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
-    Ok(v.into())
-  }
-
-  #[inline]
-  fn inject(&self, v: Self::FinalTarget) -> Self::FinalSource { v.into() }
 }

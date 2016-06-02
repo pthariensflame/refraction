@@ -1,4 +1,4 @@
-use super::{Compose, Conv, Identity, Invert, Iso, Lenticuloid};
+use super::{Compose, Identity, Invert, Iso, Lenticuloid};
 
 /// The supertype of all lens families.
 pub trait Lens: Lenticuloid {
@@ -53,20 +53,5 @@ impl<L: Iso> Lens for Invert<L> {
     where F: FnOnce(Self::InitialTarget) -> Self::FinalTarget {
     let ref l = self.deinvert;
     l.get(f(l.inject(v)))
-  }
-}
-
-impl<S, A, T, B> Lens for Conv<S, A, T, B>
-  where S: Into<A>, B: Into<T> {
-  #[inline]
-  fn get(&self, v: Self::InitialSource) -> Self::InitialTarget { v.into() }
-
-  #[inline]
-  fn set(&self, _v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource { x.into() }
-
-  #[inline]
-  fn modify<F>(&self, v: Self::InitialSource, f: F) -> Self::FinalSource
-    where F: FnOnce(Self::InitialTarget) -> Self::FinalTarget {
-    f(v.into()).into()
   }
 }
