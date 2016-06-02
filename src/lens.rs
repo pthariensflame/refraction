@@ -13,10 +13,13 @@ pub trait Lens: Lenticuloid {
 }
 
 impl<S, T> Lens for Identity<S, T> {
+  #[inline]
   fn get(&self, v: S) -> S { v }
 
+  #[inline]
   fn set(&self, _v: S, x: T) -> T { x }
 
+  #[inline]
   fn modify<F: FnOnce(S) -> T>(&self, v: S, f: F) -> T { f(v) }
 }
 
@@ -37,12 +40,15 @@ impl<LF: Lens, LS: ?Sized> Lens for Compose<LF, LS>
 }
 
 impl<L: Iso> Lens for Invert<L> {
+  #[inline]
   fn get(&self, v: Self::InitialSource) -> Self::InitialTarget { self.deinvert.inject(v) }
 
+  #[inline]
   fn set(&self, _v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource {
     self.deinvert.get(x)
   }
 
+  #[inline]
   fn modify<F>(&self, v: Self::InitialSource, f: F) -> Self::FinalSource
     where F: FnOnce(Self::InitialTarget) -> Self::FinalTarget {
     let ref l = self.deinvert;
@@ -52,10 +58,13 @@ impl<L: Iso> Lens for Invert<L> {
 
 impl<S, A, T, B> Lens for Conv<S, A, T, B>
   where S: Into<A>, B: Into<T> {
+  #[inline]
   fn get(&self, v: Self::InitialSource) -> Self::InitialTarget { v.into() }
 
+  #[inline]
   fn set(&self, _v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource { x.into() }
 
+  #[inline]
   fn modify<F>(&self, v: Self::InitialSource, f: F) -> Self::FinalSource
     where F: FnOnce(Self::InitialTarget) -> Self::FinalTarget {
     f(v.into()).into()

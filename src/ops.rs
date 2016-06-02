@@ -6,6 +6,13 @@ pub trait ComposeExt<Other>: Lenticuloid + Sized
   fn compose(self, other: Other) -> Compose<Self, Other>;
 }
 
+impl<This, Other> ComposeExt<Other> for This
+  where This: Lenticuloid,
+        Other: Lenticuloid<InitialTarget = This::InitialSource, FinalTarget = This::FinalSource> {
+  #[inline]
+  fn compose(self, other: Other) -> Compose<Self, Other> { Compose::of(self, other) }
+}
+
 /// Extension `trait` for lenticuloid composition in intuitive order.
 pub trait AndThenExt<Other: Lenticuloid>
   : Lenticuloid<InitialTarget = Other::InitialSource, FinalTarget = Other::FinalSource> + Sized
@@ -13,16 +20,10 @@ pub trait AndThenExt<Other: Lenticuloid>
   fn and_then(self, other: Other) -> Compose<Other, Self>;
 }
 
-
-impl<This, Other> ComposeExt<Other> for This
-  where This: Lenticuloid,
-        Other: Lenticuloid<InitialTarget = This::InitialSource, FinalTarget = This::FinalSource> {
-  fn compose(self, other: Other) -> Compose<Self, Other> { Compose::of(self, other) }
-}
-
 impl<This, Other> AndThenExt<Other> for This
   where Other: Lenticuloid,
         This: Lenticuloid<InitialTarget = Other::InitialSource, FinalTarget = Other::FinalSource> {
+  #[inline]
   fn and_then(self, other: Other) -> Compose<Other, Self> { Compose::of(other, self) }
 }
 
@@ -32,5 +33,6 @@ pub trait InvertExt: Lenticuloid + Sized {
 }
 
 impl<This: Lenticuloid> InvertExt for This {
+  #[inline]
   fn invert(self) -> Invert<Self> { Invert::of(self) }
 }

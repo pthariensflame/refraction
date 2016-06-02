@@ -34,18 +34,22 @@ impl<S, T> Debug for Identity<S, T> {
 }
 
 impl<S, T> Clone for Identity<S, T> {
+  #[inline]
   fn clone(&self) -> Self { *self }
 
+  #[inline]
   fn clone_from(&mut self, source: &Self) { *self = *source; }
 }
 
 impl<S, T> Copy for Identity<S, T> {}
 
 impl<S, T> Default for Identity<S, T> {
+  #[inline]
   fn default() -> Self { Self::mk() }
 }
 
 impl<S, T> Identity<S, T> {
+  #[inline]
   pub fn mk() -> Self {
     Identity {
       phantom_ss: PhantomData,
@@ -72,6 +76,7 @@ pub struct Compose<LF, LS: ?Sized> {
 }
 
 impl<LF, LS> Compose<LF, LS> {
+  #[inline]
   pub fn of(lf: LF, ls: LS) -> Self {
     Compose {
       first: lf,
@@ -98,6 +103,7 @@ pub struct Invert<L: ?Sized> {
 }
 
 impl<L> Invert<L> {
+  #[inline]
   pub fn of(l: L) -> Self { Invert { deinvert: l } }
 }
 
@@ -119,6 +125,7 @@ pub struct Conv<S, A, T = S, B = A> {
 
 impl<S, A, T, B> Conv<S, A, T, B>
   where S: Into<A>, B: Into<T> {
+  #[inline]
   pub fn mk() -> Self {
     Conv {
       phantom_sa: PhantomData,
@@ -139,8 +146,10 @@ impl<S, A, T, B> Debug for Conv<S, A, T, B>
 
 impl<S, A, T, B> Clone for Conv<S, A, T, B>
   where S: Into<A>, B: Into<T> {
+  #[inline]
   fn clone(&self) -> Self { *self }
 
+  #[inline]
   fn clone_from(&mut self, source: &Self) { *self = *source; }
 }
 
@@ -148,6 +157,7 @@ impl<S, A, T, B> Copy for Conv<S, A, T, B> where S: Into<A>, B: Into<T> {}
 
 impl<S, A, T, B> Default for Conv<S, A, T, B>
   where S: Into<A>, B: Into<T> {
+  #[inline]
   fn default() -> Self { Self::mk() }
 }
 
@@ -170,6 +180,9 @@ pub use prism::*;
 
 mod iso;
 pub use iso::*;
+
+mod equality;
+pub use equality::*;
 
 mod ops;
 pub use ops::*;

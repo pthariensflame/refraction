@@ -8,8 +8,10 @@ pub trait Prism: Lenticuloid {
 }
 
 impl<S, T> Prism for Identity<S, T> {
+  #[inline]
   fn try_get(&self, v: S) -> Result<S, T> { Ok(v) }
 
+  #[inline]
   fn inject(&self, v: T) -> T { v }
 }
 
@@ -33,18 +35,22 @@ impl<LF: Prism, LS: ?Sized> Prism for Compose<LF, LS>
 }
 
 impl<L: Iso> Prism for Invert<L> {
+  #[inline]
   fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
     Ok(self.deinvert.inject(v))
   }
 
+  #[inline]
   fn inject(&self, v: Self::FinalTarget) -> Self::FinalSource { self.deinvert.get(v) }
 }
 
 impl<S, A, T, B> Prism for Conv<S, A, T, B>
   where S: Into<A>, B: Into<T> {
+  #[inline]
   fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
     Ok(v.into())
   }
 
+  #[inline]
   fn inject(&self, v: Self::FinalTarget) -> Self::FinalSource { v.into() }
 }
