@@ -133,8 +133,6 @@ pub mod conv;
 
 pub mod terminal;
 
-pub mod refs;
-
 pub mod errors;
 
 pub mod access;
