@@ -132,12 +132,14 @@ pub use iso::*;
 mod ops;
 pub use ops::*;
 
-pub mod conv;
+pub mod access;
+
+pub mod meta;
 
 pub mod terminal;
 
-pub mod errors;
+pub mod conv;
 
-pub mod access;
+pub mod errors;
 
 pub mod collections;
