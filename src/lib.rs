@@ -117,6 +117,9 @@ impl<L: Lenticuloid + ?Sized> Lenticuloid for Invert<L> {
   type FinalTarget = L::InitialSource;
 }
 
+mod partial_lens;
+pub use partial_lens::*;
+
 mod lens;
 pub use lens::*;
 
