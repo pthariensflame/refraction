@@ -1,4 +1,4 @@
-use super::{Compose, Identity, Invert, Iso, Lenticuloid};
+use super::{Compose, Identity, Invert, Iso, Lenticuloid, Prism, Lens};
 
 /// The supertype of all partial lens families.
 pub trait PartialLens: Lenticuloid {
@@ -23,18 +23,13 @@ impl<S, T> PartialLens for Identity<S, T> {
   fn modify<F: FnOnce(S) -> T>(&self, v: S, f: F) -> T { f(v) }
 }
 
-impl<LF: PartialLens, LS: ?Sized> PartialLens for Compose<LF, LS>
-  where LS: PartialLens<InitialTarget = LF::InitialSource, FinalTarget = LF::FinalSource> {
+// `LF` should really be a `PartialLens`, not a `Prism`, but I need to figure out a workaround for the borrow checker.
+impl<LF: Prism, LS: ?Sized> PartialLens for Compose<LF, LS>
+  where LS: PartialLens<InitialTarget = LF::InitialSource, FinalTarget = LF::FinalSource>,
+        LS::InitialSource: Clone {
   fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
-    match self.second.try_get(v) {
-      Ok(q) => {
-        match self.first.try_get(q) {
-          Ok(x) => Ok(x),
-          Err(r) => Err(self.second.inject(r)),
-        }
-      },
-      Err(w) => Err(w),
-    }
+    let &Compose { first: ref lf, second: ref ls } = self;
+    ls.try_get(v).and_then(|q| lf.try_get(q).map_err(|e| lf.inject(e)))
   }
 
   fn set(&self, v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource {

@@ -3,7 +3,7 @@
 use std::marker::PhantomData;
 use std::fmt::{self, Debug, Formatter};
 use void::{Void, unreachable};
-use super::{Lens, Lenticuloid, Prism, PartialLens};
+use super::{Lens, Lenticuloid, PartialLens, Prism};
 
 /// A `Lens` to "extract" anything from `Void`.
 pub struct FromVoid<A, B> {
@@ -114,7 +114,10 @@ impl<S> PartialLens for ToVoid<S> {
 
   fn set(&self, _v: S, x: Void) -> S { unreachable(x) }
 
-  fn modify<F>(&self, v: S, _f: F) -> S where F: FnOnce(Void) -> Void { v }
+  fn modify<F>(&self, v: S, _f: F) -> S
+    where F: FnOnce(Void) -> Void {
+    v
+  }
 }
 
 impl<S> Prism for ToVoid<S> {
@@ -172,7 +175,10 @@ impl<A, B> PartialLens for FromUnit<A, B> {
 
   fn set(&self, v: (), _x: B) -> () { v }
 
-  fn modify<F>(&self, v: (), _f: F) -> () where F: FnOnce(A) -> B { v }
+  fn modify<F>(&self, v: (), _f: F) -> ()
+    where F: FnOnce(A) -> B {
+    v
+  }
 }
 
 impl<A, B> Prism for FromUnit<A, B> {

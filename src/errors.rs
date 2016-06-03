@@ -2,7 +2,7 @@
 //! and `Result`.
 use std::marker::PhantomData;
 use std::fmt::{self, Debug, Formatter};
-use super::{Iso, Lens, Lenticuloid, Prism, PartialLens};
+use super::{Iso, Lens, Lenticuloid, PartialLens, Prism};
 
 /// A lenticuloid that converts between `Option`s and `Result`s in a
 /// left-biased fashion.
