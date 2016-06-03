@@ -2,7 +2,7 @@
 //! and `Result`.
 use std::marker::PhantomData;
 use std::fmt::{self, Debug, Formatter};
-use super::{Iso, Lens, Lenticuloid, Prism};
+use super::{Iso, Lens, Lenticuloid, Prism, PartialLens};
 
 /// A lenticuloid that converts between `Option`s and `Result`s in a
 /// left-biased fashion.
@@ -55,15 +55,15 @@ impl<A, B, C> Lenticuloid for OptionFromResultL<A, B, C> {
   type FinalTarget = Option<C>;
 }
 
-impl<A, C> Lens for OptionFromResultL<A, (), C> {
-  fn get(&self, v: Self::InitialSource) -> Self::InitialTarget {
-    match v {
+impl<A, C> PartialLens for OptionFromResultL<A, (), C> {
+  fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
+    Ok(match v {
       Ok(a) => Some(a),
       Err(()) => None,
-    }
+    })
   }
 
-  fn set(&self, _v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource {
+  fn set(&self, v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource {
     match x {
       Some(a) => Ok(a),
       None => Err(()),
@@ -82,14 +82,16 @@ impl<A, C> Lens for OptionFromResultL<A, (), C> {
   }
 }
 
-impl<A, C> Prism for OptionFromResultL<A, (), C> {
-  fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
-    Ok(match v {
+impl<A, C> Lens for OptionFromResultL<A, (), C> {
+  fn get(&self, v: Self::InitialSource) -> Self::InitialTarget {
+    match v {
       Ok(a) => Some(a),
       Err(()) => None,
-    })
+    }
   }
+}
 
+impl<A, C> Prism for OptionFromResultL<A, (), C> {
   fn inject(&self, v: Self::FinalTarget) -> Self::FinalSource {
     match v {
       Some(a) => Ok(a),

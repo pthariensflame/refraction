@@ -13,6 +13,14 @@ impl<This, Other> ComposeExt<Other> for This
   fn compose(self, other: Other) -> Compose<Self, Other> { Compose::of(self, other) }
 }
 
+/// Compose all the provided lenticuloids in categorical order.
+#[macro_export]
+macro_rules! chain_compose {
+  () => { $crate::Identity::mk() };
+  ($l:expr) => { $l };
+  ($lf:expr, $($ls:expr),+) => { Compose::of($lf, chain_compose!($($ls),+)) };
+}
+
 /// Extension `trait` for lenticuloid composition in intuitive order.
 pub trait AndThenExt<Other: Lenticuloid>
   : Lenticuloid<InitialTarget = Other::InitialSource, FinalTarget = Other::FinalSource> + Sized
@@ -25,6 +33,14 @@ impl<This, Other> AndThenExt<Other> for This
         This: Lenticuloid<InitialTarget = Other::InitialSource, FinalTarget = Other::FinalSource> {
   #[inline]
   fn and_then(self, other: Other) -> Compose<Other, Self> { Compose::of(other, self) }
+}
+
+/// Compose all the provided lenticuloids in intuitive order.
+#[macro_export]
+macro_rules! chain_and_then {
+  () => { $crate::Identity::mk() };
+  ($l:expr) => { $l };
+  ($lf:expr, $($ls:expr),+) => { Compose::of(chain_and_then!($($ls),+), $lf) };
 }
 
 /// Extension `trait` for lenticuloid inversion.

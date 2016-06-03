@@ -129,6 +129,7 @@ pub use prism::*;
 mod iso;
 pub use iso::*;
 
+#[macro_use]
 mod ops;
 pub use ops::*;
 

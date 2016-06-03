@@ -3,7 +3,7 @@
 use std::marker::PhantomData;
 use std::fmt::{self, Debug, Formatter};
 use void::{Void, unreachable};
-use super::{Lens, Lenticuloid, Prism};
+use super::{Lens, Lenticuloid, Prism, PartialLens};
 
 /// A `Lens` to "extract" anything from `Void`.
 pub struct FromVoid<A, B> {
@@ -51,12 +51,16 @@ impl<A, B> Lenticuloid for FromVoid<A, B> {
   type FinalTarget = B;
 }
 
-impl<A, B> Lens for FromVoid<A, B> {
-  fn get(&self, v: Void) -> A { unreachable(v) }
+impl<A, B> PartialLens for FromVoid<A, B> {
+  fn try_get(&self, v: Void) -> Result<A, Void> { unreachable(v) }
 
   fn set(&self, v: Void, _x: B) -> Void { unreachable(v) }
 
   fn modify<F: FnOnce(A) -> B>(&self, v: Void, _f: F) -> Void { unreachable(v) }
+}
+
+impl<A, B> Lens for FromVoid<A, B> {
+  fn get(&self, v: Void) -> A { unreachable(v) }
 }
 
 /// A `Prism` to "inject" `Void` into anything.
@@ -105,9 +109,15 @@ impl<S> Lenticuloid for ToVoid<S> {
   type FinalTarget = Void;
 }
 
-impl<S> Prism for ToVoid<S> {
+impl<S> PartialLens for ToVoid<S> {
   fn try_get(&self, v: S) -> Result<Void, S> { Err(v) }
 
+  fn set(&self, _v: S, x: Void) -> S { unreachable(x) }
+
+  fn modify<F>(&self, v: S, _f: F) -> S where F: FnOnce(Void) -> Void { v }
+}
+
+impl<S> Prism for ToVoid<S> {
   fn inject(&self, v: Void) -> S { unreachable(v) }
 }
 
@@ -157,9 +167,15 @@ impl<A, B> Lenticuloid for FromUnit<A, B> {
   type FinalTarget = B;
 }
 
-impl<A, B> Prism for FromUnit<A, B> {
+impl<A, B> PartialLens for FromUnit<A, B> {
   fn try_get(&self, v: ()) -> Result<A, ()> { Err(v) }
 
+  fn set(&self, v: (), _x: B) -> () { v }
+
+  fn modify<F>(&self, v: (), _f: F) -> () where F: FnOnce(A) -> B { v }
+}
+
+impl<A, B> Prism for FromUnit<A, B> {
   fn inject(&self, _v: B) -> () { () }
 }
 
@@ -209,10 +225,14 @@ impl<S> Lenticuloid for ToUnit<S> {
   type FinalTarget = ();
 }
 
-impl<S> Lens for ToUnit<S> {
-  fn get(&self, _v: S) -> () { () }
+impl<S> PartialLens for ToUnit<S> {
+  fn try_get(&self, _v: S) -> Result<(), S> { Ok(()) }
 
   fn set(&self, v: S, _x: ()) -> S { v }
 
   fn modify<F: FnOnce(()) -> ()>(&self, v: S, _f: F) -> S { v }
+}
+
+impl<S> Lens for ToUnit<S> {
+  fn get(&self, _v: S) -> () { () }
 }

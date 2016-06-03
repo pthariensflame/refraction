@@ -2,7 +2,7 @@
 //! traits `Into`, `AsRef` and `AsMut`.
 use std::marker::PhantomData;
 use std::fmt::{self, Debug, Formatter};
-use super::{Iso, Lens, Lenticuloid, Prism};
+use super::{Iso, Lens, Lenticuloid, Prism, PartialLens};
 
 /// An isomorphism family that handles lossless conversions by owned value.
 pub struct Conv<S, A, T = S, B = A> {
@@ -59,10 +59,12 @@ impl<S, A, T, B> Lenticuloid for Conv<S, A, T, B>
   type FinalTarget = B;
 }
 
-impl<S, A, T, B> Lens for Conv<S, A, T, B>
+impl<S, A, T, B> PartialLens for Conv<S, A, T, B>
   where S: Into<A>, B: Into<T> {
   #[inline]
-  fn get(&self, v: Self::InitialSource) -> Self::InitialTarget { v.into() }
+  fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
+    Ok(v.into())
+  }
 
   #[inline]
   fn set(&self, _v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource { x.into() }
@@ -74,13 +76,14 @@ impl<S, A, T, B> Lens for Conv<S, A, T, B>
   }
 }
 
-impl<S, A, T, B> Prism for Conv<S, A, T, B>
+impl<S, A, T, B> Lens for Conv<S, A, T, B>
   where S: Into<A>, B: Into<T> {
   #[inline]
-  fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
-    Ok(v.into())
-  }
+  fn get(&self, v: Self::InitialSource) -> Self::InitialTarget { v.into() }
+}
 
+impl<S, A, T, B> Prism for Conv<S, A, T, B>
+  where S: Into<A>, B: Into<T> {
   #[inline]
   fn inject(&self, v: Self::FinalTarget) -> Self::FinalSource { v.into() }
 }
@@ -88,12 +91,14 @@ impl<S, A, T, B> Prism for Conv<S, A, T, B>
 impl<S, A, T, B> Iso for Conv<S, A, T, B> where S: Into<A>, B: Into<T> {}
 
 /// An isomorphism family that handles lossless conversions by shared reference.
-pub struct ConvRef<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> {
+pub struct ConvRef<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  {
   phantom_sa: PhantomData<Fn(&'a S) -> &'a A>,
   phantom_bt: PhantomData<Fn(&'a B) -> &'a T>,
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> ConvRef<'a, S, A, T, B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  ConvRef<'a, S, A, T, B>
   where S: AsRef<A>, B: AsRef<T> {
   #[inline]
   pub fn mk() -> Self {
@@ -104,11 +109,8 @@ impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> ConvRef
   }
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Debug for ConvRef<'a,
-                                                                                           S,
-                                                                                           A,
-                                                                                           T,
-                                                                                           B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  Debug for ConvRef<'a, S, A, T, B>
   where S: AsRef<A>, B: AsRef<T> {
   fn fmt(&self, fm: &mut Formatter) -> fmt::Result {
     fm.debug_struct("ConvRef")
@@ -118,11 +120,8 @@ impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Debug f
   }
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Clone for ConvRef<'a,
-                                                                                           S,
-                                                                                           A,
-                                                                                           T,
-                                                                                           B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  Clone for ConvRef<'a, S, A, T, B>
   where S: AsRef<A>, B: AsRef<T> {
   #[inline]
   fn clone(&self) -> Self { *self }
@@ -131,29 +130,20 @@ impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Clone f
   fn clone_from(&mut self, source: &Self) { *self = *source; }
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Copy for ConvRef<'a,
-                                                                                          S,
-                                                                                          A,
-                                                                                          T,
-                                                                                          B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  Copy for ConvRef<'a, S, A, T, B>
   where S: AsRef<A>, B: AsRef<T> {
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Default for ConvRef<'a,
-                                                                                             S,
-                                                                                             A,
-                                                                                             T,
-                                                                                             B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  Default for ConvRef<'a, S, A, T, B>
   where S: AsRef<A>, B: AsRef<T> {
   #[inline]
   fn default() -> Self { Self::mk() }
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Lenticuloid for ConvRef<'a,
-                                                                                                 S,
-                                                                                                 A,
-                                                                                                 T,
-                                                                                                 B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  Lenticuloid for ConvRef<'a, S, A, T, B>
   where S: AsRef<A>, B: AsRef<T> {
   type InitialSource = &'a S;
 
@@ -164,14 +154,13 @@ impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Lenticu
   type FinalTarget = &'a B;
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Lens for ConvRef<'a,
-                                                                                          S,
-                                                                                          A,
-                                                                                          T,
-                                                                                          B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  PartialLens for ConvRef<'a, S, A, T, B>
   where S: AsRef<A>, B: AsRef<T> {
   #[inline]
-  fn get(&self, v: Self::InitialSource) -> Self::InitialTarget { v.as_ref() }
+  fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
+    Ok(v.as_ref())
+  }
 
   #[inline]
   fn set(&self, _v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource { x.as_ref() }
@@ -183,37 +172,35 @@ impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Lens fo
   }
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Prism for ConvRef<'a,
-                                                                                           S,
-                                                                                           A,
-                                                                                           T,
-                                                                                           B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  Lens for ConvRef<'a, S, A, T, B>
   where S: AsRef<A>, B: AsRef<T> {
   #[inline]
-  fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
-    Ok(v.as_ref())
-  }
+  fn get(&self, v: Self::InitialSource) -> Self::InitialTarget { v.as_ref() }
+}
 
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  Prism for ConvRef<'a, S, A, T, B>
+  where S: AsRef<A>, B: AsRef<T> {
   #[inline]
   fn inject(&self, v: Self::FinalTarget) -> Self::FinalSource { v.as_ref() }
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Iso for ConvRef<'a,
-                                                                                         S,
-                                                                                         A,
-                                                                                         T,
-                                                                                         B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  Iso for ConvRef<'a, S, A, T, B>
   where S: AsRef<A>, B: AsRef<T> {
 }
 
 /// An isomorphism family that handles lossless conversions by mutable
 /// reference.
-pub struct ConvMut<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> {
+pub struct ConvMut<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  {
   phantom_sa: PhantomData<Fn(&'a mut S) -> &'a mut A>,
   phantom_bt: PhantomData<Fn(&'a mut B) -> &'a mut T>,
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> ConvMut<'a, S, A, T, B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  ConvMut<'a, S, A, T, B>
   where S: AsMut<A>, B: AsMut<T> {
   #[inline]
   pub fn mk() -> Self {
@@ -224,11 +211,8 @@ impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> ConvMut
   }
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Debug for ConvMut<'a,
-                                                                                           S,
-                                                                                           A,
-                                                                                           T,
-                                                                                           B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  Debug for ConvMut<'a, S, A, T, B>
   where S: AsMut<A>, B: AsMut<T> {
   fn fmt(&self, fm: &mut Formatter) -> fmt::Result {
     fm.debug_struct("ConvMut")
@@ -238,11 +222,8 @@ impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Debug f
   }
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Clone for ConvMut<'a,
-                                                                                           S,
-                                                                                           A,
-                                                                                           T,
-                                                                                           B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  Clone for ConvMut<'a, S, A, T, B>
   where S: AsMut<A>, B: AsMut<T> {
   #[inline]
   fn clone(&self) -> Self { *self }
@@ -251,29 +232,20 @@ impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Clone f
   fn clone_from(&mut self, source: &Self) { *self = *source; }
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Copy for ConvMut<'a,
-                                                                                          S,
-                                                                                          A,
-                                                                                          T,
-                                                                                          B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  Copy for ConvMut<'a, S, A, T, B>
   where S: AsMut<A>, B: AsMut<T> {
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Default for ConvMut<'a,
-                                                                                             S,
-                                                                                             A,
-                                                                                             T,
-                                                                                             B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  Default for ConvMut<'a, S, A, T, B>
   where S: AsMut<A>, B: AsMut<T> {
   #[inline]
   fn default() -> Self { Self::mk() }
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Lenticuloid for ConvMut<'a,
-                                                                                                 S,
-                                                                                                 A,
-                                                                                                 T,
-                                                                                                 B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  Lenticuloid for ConvMut<'a, S, A, T, B>
   where S: AsMut<A>, B: AsMut<T> {
   type InitialSource = &'a mut S;
 
@@ -284,14 +256,13 @@ impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Lenticu
   type FinalTarget = &'a mut B;
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Lens for ConvMut<'a,
-                                                                                          S,
-                                                                                          A,
-                                                                                          T,
-                                                                                          B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  PartialLens for ConvMut<'a, S, A, T, B>
   where S: AsMut<A>, B: AsMut<T> {
   #[inline]
-  fn get(&self, v: Self::InitialSource) -> Self::InitialTarget { v.as_mut() }
+  fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
+    Ok(v.as_mut())
+  }
 
   #[inline]
   fn set(&self, _v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource { x.as_mut() }
@@ -303,25 +274,21 @@ impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Lens fo
   }
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Prism for ConvMut<'a,
-                                                                                           S,
-                                                                                           A,
-                                                                                           T,
-                                                                                           B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  Lens for ConvMut<'a, S, A, T, B>
   where S: AsMut<A>, B: AsMut<T> {
   #[inline]
-  fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
-    Ok(v.as_mut())
-  }
+  fn get(&self, v: Self::InitialSource) -> Self::InitialTarget { v.as_mut() }
+}
 
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  Prism for ConvMut<'a, S, A, T, B>
+  where S: AsMut<A>, B: AsMut<T> {
   #[inline]
   fn inject(&self, v: Self::FinalTarget) -> Self::FinalSource { v.as_mut() }
 }
 
-impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> Iso for ConvMut<'a,
-                                                                                         S,
-                                                                                         A,
-                                                                                         T,
-                                                                                         B>
+impl<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a>
+  Iso for ConvMut<'a, S, A, T, B>
   where S: AsMut<A>, B: AsMut<T> {
 }
