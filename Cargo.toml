@@ -5,6 +5,7 @@ authors = ["Alexander Altman <alexanderaltman@me.com>"]
 
 [dependencies]
 void = "~1.0.2"
+identity = "~0.0.2"
 
 [dev-dependencies]
 quickcheck = "~0.2.27"
