@@ -75,6 +75,12 @@ impl<A, B> PartialLens for FromNever<A, B> {
     fn modify<F: FnOnce(A) -> B>(&self, v: !, _f: F) -> ! {
         v
     }
+
+    fn try_modify<F>(&self, v: !, f: F) -> Self::FinalSource
+        where F: FnOnce(Result<A, !>) -> B
+    {
+        v
+    }
 }
 
 #[cfg(feature = "nightly")]
@@ -156,6 +162,12 @@ impl<S> PartialLens for ToNever<S> {
     {
         v
     }
+
+    fn try_modify<F>(&self, v: S, f: F) -> S
+        where F: FnOnce(Result<!, S>) -> !
+    {
+        v
+    }
 }
 
 #[cfg(feature = "nightly")]
@@ -229,6 +241,12 @@ impl<A, B> PartialLens for FromUnit<A, B> {
     {
         v
     }
+
+    fn try_modify<F>(&self, v: (), f: F) -> ()
+        where F: FnOnce(Result<A, ()>) -> B
+    {
+        v
+    }
 }
 
 impl<A, B> Prism for FromUnit<A, B> {
@@ -297,6 +315,12 @@ impl<S> PartialLens for ToUnit<S> {
     }
 
     fn modify<F: FnOnce(()) -> ()>(&self, v: S, _f: F) -> S {
+        v
+    }
+
+    fn try_modify<F>(&self, v: S, f: F) -> S
+        where F: FnOnce(Result<(), S>) -> ()
+    {
         v
     }
 }
