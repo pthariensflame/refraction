@@ -76,8 +76,8 @@ impl<A, B> PartialLens for FromNever<A, B> {
         v
     }
 
-    fn try_modify<F>(&self, v: !, f: F) -> Self::FinalSource
-        where F: FnOnce(Result<A, !>) -> B
+    fn try_modify<F, E>(&self, v: !, f: F) -> Result<!, E>
+        where F: FnOnce(Result<A, !>) -> Result<B, E>
     {
         v
     }
@@ -163,10 +163,10 @@ impl<S> PartialLens for ToNever<S> {
         v
     }
 
-    fn try_modify<F>(&self, v: S, f: F) -> S
-        where F: FnOnce(Result<!, S>) -> !
+    fn try_modify<F, E>(&self, v: S, f: F) -> Result<S, E>
+        where F: FnOnce(Result<!, S>) -> Result<!, E>
     {
-        v
+        Ok(v)
     }
 }
 
@@ -242,10 +242,10 @@ impl<A, B> PartialLens for FromUnit<A, B> {
         v
     }
 
-    fn try_modify<F>(&self, v: (), f: F) -> ()
-        where F: FnOnce(Result<A, ()>) -> B
+    fn try_modify<F, E>(&self, v: (), f: F) -> Result<(), E>
+        where F: FnOnce(Result<A, ()>) -> Result<B, E>
     {
-        v
+        Ok(v)
     }
 }
 
@@ -318,10 +318,10 @@ impl<S> PartialLens for ToUnit<S> {
         v
     }
 
-    fn try_modify<F>(&self, v: S, f: F) -> S
-        where F: FnOnce(Result<(), S>) -> ()
+    fn try_modify<F, E>(&self, v: S, f: F) -> Result<S, E>
+        where F: FnOnce(Result<(), S>) -> Result<(), E>
     {
-        v
+        Ok(v)
     }
 }
 

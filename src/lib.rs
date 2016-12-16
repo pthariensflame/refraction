@@ -9,6 +9,34 @@
 use std::fmt;
 use std::marker::PhantomData;
 
+/// An extension trait to provide a few convenient methods on `Result`.
+pub trait ResultExt<T, E> {
+    fn flip(self) -> Result<E, T>;
+
+    fn extract<R>(self) -> R
+        where T: Into<R>,
+              E: Into<R>;
+}
+
+impl<T, E> ResultExt<T, E> for Result<T, E> {
+    fn flip(self) -> Result<E, T> {
+        match self {
+            Ok(x) => Err(x),
+            Err(e) => Ok(e),
+        }
+    }
+
+    fn extract<R>(self) -> R
+        where T: Into<R>,
+              E: Into<R>
+    {
+        match self {
+            Ok(x) => x.into(),
+            Err(e) => e.into(),
+        }
+    }
+}
+
 /// The supertype of all lenticuloids.
 pub trait Lenticuloid {
     type InitialSource;

@@ -99,10 +99,11 @@ impl<S, A, T, B> PartialLens for Conv<S, A, T, B>
         f(v.into()).into()
     }
 
-    fn try_modify<F>(&self, v: Self::InitialSource, f: F) -> Self::FinalSource
-        where F: FnOnce(Result<Self::InitialTarget, Self::FinalSource>) -> Self::FinalTarget
+    fn try_modify<F, E>(&self, v: Self::InitialSource, f: F) -> Result<Self::FinalSource, E>
+        where F: FnOnce(Result<Self::InitialTarget, Self::FinalSource>)
+                        -> Result<Self::FinalTarget, E>
     {
-        f(Ok(v.into())).into()
+        f(Ok(v.into())).map(|x| x.into())
     }
 }
 
@@ -240,10 +241,11 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> PartialLens for ConvRef<'a,
         f(v.as_ref()).as_ref()
     }
 
-    fn try_modify<F>(&self, v: Self::InitialSource, f: F) -> Self::FinalSource
-        where F: FnOnce(Result<Self::InitialTarget, Self::FinalSource>) -> Self::FinalTarget
+    fn try_modify<F, E>(&self, v: Self::InitialSource, f: F) -> Result<Self::FinalSource, E>
+        where F: FnOnce(Result<Self::InitialTarget, Self::FinalSource>)
+                        -> Result<Self::FinalTarget, E>
     {
-        f(Ok(v.as_ref())).as_ref()
+        f(Ok(v.as_ref())).map(|x| x.as_ref())
     }
 }
 
@@ -388,10 +390,11 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> PartialLens for ConvMut<'a,
         f(v.as_mut()).as_mut()
     }
 
-    fn try_modify<F>(&self, v: Self::InitialSource, f: F) -> Self::FinalSource
-        where F: FnOnce(Result<Self::InitialTarget, Self::FinalSource>) -> Self::FinalTarget
+    fn try_modify<F, E>(&self, v: Self::InitialSource, f: F) -> Result<Self::FinalSource, E>
+        where F: FnOnce(Result<Self::InitialTarget, Self::FinalSource>)
+                        -> Result<Self::FinalTarget, E>
     {
-        f(Ok(v.as_mut())).as_mut()
+        f(Ok(v.as_mut())).map(|x| x.as_mut())
     }
 }
 
