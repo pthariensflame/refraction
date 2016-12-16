@@ -9,15 +9,15 @@ use super::{Lens, Lenticuloid, PartialLens, Prism};
 #[cfg(feature = "nightly")]
 /// A `Lens` to "extract" anything from `!`.
 pub struct FromNever<A, B> {
-    phantom_va: PhantomData<Fn(!) -> A>,
-    phantom_bv: PhantomData<Fn(B) -> !>,
+    phantom_na: PhantomData<Fn(!) -> A>,
+    phantom_bn: PhantomData<Fn(B) -> !>,
 }
 
 #[cfg(feature = "nightly")]
 impl<A, B> FromNever<A, B> {
     pub fn mk() -> Self {
-        FromNever { phantom_va: PhantomData,
-                    phantom_bv: PhantomData, }
+        FromNever { phantom_na: PhantomData,
+                    phantom_bn: PhantomData, }
     }
 }
 
@@ -25,8 +25,8 @@ impl<A, B> FromNever<A, B> {
 impl<A, B> Debug for FromNever<A, B> {
     fn fmt(&self, fm: &mut Formatter) -> fmt::Result {
         fm.debug_struct("FromNever")
-          .field("phantom_va", &self.phantom_va)
-          .field("phantom_bv", &self.phantom_bv)
+          .field("phantom_na", &self.phantom_na)
+          .field("phantom_bn", &self.phantom_bn)
           .finish()
     }
 }
@@ -80,6 +80,12 @@ impl<A, B> PartialLens for FromNever<A, B> {
     fn modify<F: FnOnce(A) -> B>(&self, v: !, _f: F) -> ! {
         v
     }
+
+    fn modify_with<F, X>(&self, v: !, f: F) -> (!, Option<X>)
+        where F: FnOnce(A) -> (B, X)
+    {
+        v
+    }
 }
 
 #[cfg(feature = "nightly")]
@@ -92,15 +98,15 @@ impl<A, B> Lens for FromNever<A, B> {
 #[cfg(feature = "nightly")]
 /// A `Prism` to "inject" `!` into anything.
 pub struct ToNever<S> {
-    phantom_vs: PhantomData<Fn(!) -> S>,
-    phantom_sv: PhantomData<Fn(S) -> !>,
+    phantom_ns: PhantomData<Fn(!) -> S>,
+    phantom_sn: PhantomData<Fn(S) -> !>,
 }
 
 #[cfg(feature = "nightly")]
 impl<S> ToNever<S> {
     pub fn mk() -> Self {
-        ToNever { phantom_vs: PhantomData,
-                  phantom_sv: PhantomData, }
+        ToNever { phantom_ns: PhantomData,
+                  phantom_sn: PhantomData, }
     }
 }
 
@@ -108,8 +114,8 @@ impl<S> ToNever<S> {
 impl<S> Debug for ToNever<S> {
     fn fmt(&self, fm: &mut Formatter) -> fmt::Result {
         fm.debug_struct("ToNever")
-          .field("phantom_vs", &self.phantom_vs)
-          .field("phantom_sv", &self.phantom_sv)
+          .field("phantom_ns", &self.phantom_ns)
+          .field("phantom_sn", &self.phantom_sn)
           .finish()
     }
 }
@@ -164,6 +170,12 @@ impl<S> PartialLens for ToNever<S> {
         where F: FnOnce(!) -> !
     {
         v
+    }
+
+    fn modify_with<F, X>(&self, v: S, f: F) -> (S, Option<X>)
+        where F: FnOnce(!) -> (!, X)
+    {
+        (v, None)
     }
 }
 
@@ -242,6 +254,12 @@ impl<A, B> PartialLens for FromUnit<A, B> {
     {
         v
     }
+
+    fn modify_with<F, X>(&self, v: (), f: F) -> ((), Option<X>)
+        where F: FnOnce(A) -> (B, X)
+    {
+        ((), None)
+    }
 }
 
 impl<A, B> Prism for FromUnit<A, B> {
@@ -315,6 +333,12 @@ impl<S> PartialLens for ToUnit<S> {
 
     fn modify<F: FnOnce(()) -> ()>(&self, v: S, _f: F) -> S {
         v
+    }
+
+    fn modify_with<F, X>(&self, v: S, f: F) -> (S, Option<X>)
+        where F: FnOnce(()) -> ((), X)
+    {
+        (v, Some(f(()).1))
     }
 }
 
