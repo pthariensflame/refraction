@@ -58,7 +58,7 @@ impl<LF: PartialLens, LS: ?Sized> PartialLens for Compose<LF, LS>
     where LS: PartialLens<InitialTarget = LF::InitialSource, FinalTarget = LF::FinalSource>
 {
     fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
-        ()
+        self.first.try_get(v).and_then(|q| self.second.try_get(q))
     }
 
     fn set(&self, v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource {
@@ -69,7 +69,11 @@ impl<LF: PartialLens, LS: ?Sized> PartialLens for Compose<LF, LS>
                 v: Self::InitialSource,
                 x: Self::FinalTarget)
                 -> (Option<Self::InitialTarget>, Self::FinalSource) {
-        ()
+        let (a, b_opt) = self.second.modify_with(v, |q| {
+            let (c, d) = self.first.exchange(q, x);
+            (d, c)
+        });
+        (b_opt.and_then(|b| b), a)
     }
 
     fn modify<F>(&self, v: Self::InitialSource, f: F) -> Self::FinalSource
@@ -81,7 +85,8 @@ impl<LF: PartialLens, LS: ?Sized> PartialLens for Compose<LF, LS>
     fn modify_with<F, X>(&self, v: Self::InitialSource, f: F) -> (Self::FinalSource, Option<X>)
         where F: FnOnce(Self::InitialTarget) -> (Self::FinalTarget, X)
     {
-        ()
+        let (a, b_opt) = self.second.modify_with(v, |q| self.first.modify_with(q, f));
+        (a, b_opt.and_then(|b| b))
     }
 }
 
@@ -101,7 +106,8 @@ impl<L: Iso> PartialLens for Invert<L> {
                 v: Self::InitialSource,
                 x: Self::FinalTarget)
                 -> (Option<Self::InitialTarget>, Self::FinalSource) {
-        ()
+        let ref l = self.deinvert;
+        (Some(l.inject(v)), l.get(x))
     }
 
     #[inline]
