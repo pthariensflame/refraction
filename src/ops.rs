@@ -1,4 +1,9 @@
-use super::{Compose, Invert, Lenticuloid};
+use super::{Compose, Identity, Invert, Lenticuloid};
+
+/// The identity lenticuloid (function form).
+pub fn identity<S, T>() -> Identity<S, T> {
+    Identity::mk()
+}
 
 /// Extension `trait` for lenticuloid composition in categorical order.
 pub trait ComposeExt<Other>: Lenticuloid + Sized

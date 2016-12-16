@@ -93,6 +93,14 @@ impl<S, A, T, B> PartialLens for Conv<S, A, T, B>
     }
 
     #[inline]
+    fn exchange(&self,
+                v: Self::InitialSource,
+                x: Self::FinalTarget)
+                -> (Option<Self::InitialTarget>, Self::FinalSource) {
+        (Some(v.into()), x.into())
+    }
+
+    #[inline]
     fn modify<F>(&self, v: Self::InitialSource, f: F) -> Self::FinalSource
         where F: FnOnce(Self::InitialTarget) -> Self::FinalTarget
     {
@@ -225,6 +233,13 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> PartialLens for ConvRef<'a,
     #[inline]
     fn set(&self, _v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource {
         x.as_ref()
+    }
+
+    fn exchange(&self,
+                v: Self::InitialSource,
+                x: Self::FinalTarget)
+                -> (Option<Self::InitialTarget>, Self::FinalSource) {
+        (Some(v.as_ref()), x.as_ref())
     }
 
     #[inline]
@@ -367,6 +382,13 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> PartialLens for ConvMut<'a,
     #[inline]
     fn set(&self, _v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource {
         x.as_mut()
+    }
+
+    fn exchange(&self,
+                v: Self::InitialSource,
+                x: Self::FinalTarget)
+                -> (Option<Self::InitialTarget>, Self::FinalSource) {
+        (Some(v.as_mut()), x.as_mut())
     }
 
     #[inline]

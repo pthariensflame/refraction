@@ -1,5 +1,6 @@
 //! These lenticuloids deal with the trivial and the impossible; that is, they
-//! operate with values of types `()` and `Never`.
+//! operate with values of types `()` and `!` (the latter only on nightly Rust,
+//! with the `nightly` feature flag enabled).
 
 use std::fmt::{self, Debug, Formatter};
 use std::marker::PhantomData;
@@ -69,6 +70,10 @@ impl<A, B> PartialLens for FromNever<A, B> {
     }
 
     fn set(&self, v: !, _x: B) -> ! {
+        v
+    }
+
+    fn exchange(&self, v: !, _x: B) -> (Option<A>, !) {
         v
     }
 
@@ -151,6 +156,10 @@ impl<S> PartialLens for ToNever<S> {
         x
     }
 
+    fn exchange(&self, _v: S, x: !) -> (Option<!>, S) {
+        x
+    }
+
     fn modify<F>(&self, v: S, _f: F) -> S
         where F: FnOnce(!) -> !
     {
@@ -224,6 +233,10 @@ impl<A, B> PartialLens for FromUnit<A, B> {
         v
     }
 
+    fn exchange(&self, v: (), x: B) -> (Option<A>, ()) {
+        (None, ())
+    }
+
     fn modify<F>(&self, v: (), _f: F) -> ()
         where F: FnOnce(A) -> B
     {
@@ -294,6 +307,10 @@ impl<S> PartialLens for ToUnit<S> {
 
     fn set(&self, v: S, _x: ()) -> S {
         v
+    }
+
+    fn exchange(&self, v: S, _x: ()) -> (Option<()>, S) {
+        (Some(()), v)
     }
 
     fn modify<F: FnOnce(()) -> ()>(&self, v: S, _f: F) -> S {

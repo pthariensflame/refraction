@@ -1,11 +1,6 @@
-//! `refraction` is a lens library for Rust.  Its design is based broadly on
-//! that of [the Haskell `lens`
-//! package](https://hackage.haskell.org/package/lens), but reworked and
-//! reorganized to become more Rusty.
+//! `refraction` is a lens library for Rust.  Its design is based broadly on that of [the Haskell `lens` package](https://hackage.haskell.org/package/lens), but reworked and reorganized to become more Rusty.
 //!
-//! The `nightly` cargo feature flag can be used to enable some features only
-//! available on nightly Rust (right now, that's just lenticuloids that deal
-//! with the `!` type).
+//! The `nightly` cargo feature flag can be used to enable some features only available on nightly Rust (right now, that's just lenticuloids that deal with the `!` type).
 
 #![cfg_attr(feature = "nightly", feature(never_type))]
 

@@ -1,6 +1,6 @@
 [package]
 name = "refraction"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Alexander Altman <alexanderaltman@me.com>"]
 description = ""
 readme = "README.md"
