@@ -10,7 +10,7 @@ use std::fmt;
 use std::marker::PhantomData;
 
 /// An extension trait to provide a few convenient methods on `Result`.
-pub trait ResultExt<T, E> {
+pub trait ResultExt<T, E>: Sized {
     fn flip(self) -> Result<E, T>;
 
     fn extract<R>(self) -> R

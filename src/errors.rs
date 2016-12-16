@@ -86,20 +86,6 @@ impl<A, C> PartialLens for OptionFromResultL<A, (), C> {
             None => Err(()),
         }
     }
-
-    fn try_modify<F, E>(&self, v: Self::InitialSource, f: F) -> Result<Self::FinalSource, E>
-        where F: FnOnce(Result<Self::InitialTarget, Self::FinalSource>)
-                        -> Result<Self::FinalTarget, E>
-    {
-        f(Ok(match v {
-            Ok(a) => Some(a),
-            Err(()) => None,
-        }))
-            .map(|x| match x {
-                Some(b) => Ok(b),
-                None => Err(()),
-            })
-    }
 }
 
 impl<A, C> Lens for OptionFromResultL<A, (), C> {
