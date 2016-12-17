@@ -1,7 +1,16 @@
 use super::{Compose, Identity, Invert, Lenticuloid};
 
+#[cfg(not(feature = "nightly"))]
 /// The identity lenticuloid (function form).
+#[inline]
 pub fn identity<S, T>() -> Identity<S, T> {
+    Identity::mk()
+}
+
+#[cfg(feature = "nightly")]
+/// The identity lenticuloid (constant function form).
+#[inline]
+pub const fn identity<S, T>() -> Identity<S, T> {
     Identity::mk()
 }
 

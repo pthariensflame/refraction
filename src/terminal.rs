@@ -15,7 +15,7 @@ pub struct FromNever<A, B> {
 
 #[cfg(feature = "nightly")]
 impl<A, B> FromNever<A, B> {
-    pub fn mk() -> Self {
+    pub const fn mk() -> Self {
         FromNever { phantom_na: PhantomData,
                     phantom_bn: PhantomData, }
     }
@@ -61,6 +61,18 @@ impl<A, B> Lenticuloid for FromNever<A, B> {
     type FinalSource = !;
 
     type FinalTarget = B;
+
+    type AtInitial = FromNever<A, A>;
+
+    fn at_initial(&self) -> Self::AtInitial {
+        FromNever::mk()
+    }
+
+    type AtFinal = FromNever<B, B>;
+
+    fn at_final(&self) -> Self::AtFinal {
+        FromNever::mk()
+    }
 }
 
 #[cfg(feature = "nightly")]
@@ -104,7 +116,7 @@ pub struct ToNever<S> {
 
 #[cfg(feature = "nightly")]
 impl<S> ToNever<S> {
-    pub fn mk() -> Self {
+    pub const fn mk() -> Self {
         ToNever { phantom_ns: PhantomData,
                   phantom_sn: PhantomData, }
     }
@@ -150,6 +162,18 @@ impl<S> Lenticuloid for ToNever<S> {
     type FinalSource = S;
 
     type FinalTarget = !;
+
+    type AtInitial = ToNever<S>;
+
+    fn at_initial(&self) -> Self::AtInitial {
+        ToNever::mk()
+    }
+
+    type AtFinal = ToNever<S>;
+
+    fn at_final(&self) -> Self::AtFinal {
+        ToNever::mk()
+    }
 }
 
 #[cfg(feature = "nightly")]
@@ -193,7 +217,14 @@ pub struct FromUnit<A, B> {
 }
 
 impl<A, B> FromUnit<A, B> {
+    #[cfg(not(feature = "nightly"))]
     pub fn mk() -> Self {
+        FromUnit { phantom_ua: PhantomData,
+                   phantom_bu: PhantomData, }
+    }
+
+    #[cfg(feature = "nightly")]
+    pub const fn mk() -> Self {
         FromUnit { phantom_ua: PhantomData,
                    phantom_bu: PhantomData, }
     }
@@ -234,6 +265,18 @@ impl<A, B> Lenticuloid for FromUnit<A, B> {
     type FinalSource = ();
 
     type FinalTarget = B;
+
+    type AtInitial = FromUnit<A, A>;
+
+    fn at_initial(&self) -> Self::AtInitial {
+        FromUnit::mk()
+    }
+
+    type AtFinal = FromUnit<B, B>;
+
+    fn at_final(&self) -> Self::AtFinal {
+        FromUnit::mk()
+    }
 }
 
 impl<A, B> PartialLens for FromUnit<A, B> {
@@ -275,7 +318,14 @@ pub struct ToUnit<S> {
 }
 
 impl<S> ToUnit<S> {
+    #[cfg(not(feature = "nightly"))]
     pub fn mk() -> Self {
+        ToUnit { phantom_su: PhantomData,
+                 phantom_us: PhantomData, }
+    }
+
+    #[cfg(feature = "nightly")]
+    pub const fn mk() -> Self {
         ToUnit { phantom_su: PhantomData,
                  phantom_us: PhantomData, }
     }
@@ -316,6 +366,18 @@ impl<S> Lenticuloid for ToUnit<S> {
     type FinalSource = S;
 
     type FinalTarget = ();
+
+    type AtInitial = ToUnit<S>;
+
+    fn at_initial(&self) -> Self::AtInitial {
+        ToUnit::mk()
+    }
+
+    type AtFinal = ToUnit<S>;
+
+    fn at_final(&self) -> Self::AtFinal {
+        ToUnit::mk()
+    }
 }
 
 impl<S> PartialLens for ToUnit<S> {

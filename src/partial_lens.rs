@@ -1,7 +1,10 @@
 use super::{Compose, Identity, Invert, Iso, Lens, Lenticuloid, Prism};
 
 /// The supertype of all partial lens families.
-pub trait PartialLens: Lenticuloid {
+pub trait PartialLens: Lenticuloid
+    where Self::AtInitial: PartialLens,
+          Self::AtFinal: PartialLens
+{
     fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource>;
 
     fn set(&self, v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource {
@@ -55,10 +58,15 @@ impl<S, T> PartialLens for Identity<S, T> {
 }
 
 impl<LF: PartialLens, LS: ?Sized> PartialLens for Compose<LF, LS>
-    where LS: PartialLens<InitialTarget = LF::InitialSource, FinalTarget = LF::FinalSource>
+    where LS: PartialLens<InitialTarget = LF::InitialSource, FinalTarget = LF::FinalSource>,
+          LF::AtInitial: PartialLens,
+          LF::AtFinal: PartialLens,
+          LS::AtInitial: PartialLens,
+          LS::AtFinal: PartialLens
 {
     fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
-        self.first.try_get(v).and_then(|q| self.second.try_get(q))
+        let Compose { first: ref lf, second: ref ls } = *self;
+        ()
     }
 
     fn set(&self, v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource {
@@ -90,7 +98,10 @@ impl<LF: PartialLens, LS: ?Sized> PartialLens for Compose<LF, LS>
     }
 }
 
-impl<L: Iso> PartialLens for Invert<L> {
+impl<L: Iso> PartialLens for Invert<L>
+    where L::AtInitial: Iso,
+          L::AtFinal: Iso
+{
     #[inline]
     fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
         Ok(self.deinvert.inject(v))

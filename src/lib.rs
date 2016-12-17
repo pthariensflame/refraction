@@ -4,10 +4,12 @@
 //! reorganized to become more Rusty.
 //!
 //! The `nightly` cargo feature flag can be used to enable some features only
-//! available on nightly Rust (right now, that's just lenticuloids that deal
-//! with the `!` type).
+//! available on nightly Rust:
+//!
+//! - Lenticuloids that deal with the `!` type
+//! - `const fn` support
 
-#![cfg_attr(feature = "nightly", feature(never_type))]
+#![cfg_attr(feature = "nightly", feature(never_type, const_fn))]
 
 use std::fmt;
 use std::marker::PhantomData;
@@ -21,6 +23,24 @@ pub trait Lenticuloid {
     type FinalSource;
 
     type FinalTarget;
+
+    type AtInitial: Lenticuloid<InitialSource = Self::InitialSource,
+                InitialTarget = Self::InitialTarget,
+                FinalSource = Self::InitialSource,
+                FinalTarget = Self::InitialTarget,
+                AtInitial = Self::AtInitial,
+                AtFinal = Self::AtInitial>;
+
+    fn at_initial(&self) -> Self::AtInitial;
+
+    type AtFinal: Lenticuloid<InitialSource = Self::FinalSource,
+                InitialTarget = Self::FinalTarget,
+                FinalSource = Self::FinalSource,
+                FinalTarget = Self::FinalTarget,
+                AtInitial = Self::AtFinal,
+                AtFinal = Self::AtFinal>;
+
+    fn at_final(&self) -> Self::AtFinal;
 }
 
 /// The identity lenticuloid.
@@ -60,8 +80,16 @@ impl<S, T> Default for Identity<S, T> {
 }
 
 impl<S, T> Identity<S, T> {
+    #[cfg(not(feature = "nightly"))]
     #[inline]
     pub fn mk() -> Self {
+        Identity { phantom_ss: PhantomData,
+                   phantom_tt: PhantomData, }
+    }
+
+    #[cfg(feature = "nightly")]
+    #[inline]
+    pub const fn mk() -> Self {
         Identity { phantom_ss: PhantomData,
                    phantom_tt: PhantomData, }
     }
@@ -75,6 +103,18 @@ impl<S, T> Lenticuloid for Identity<S, T> {
     type FinalSource = T;
 
     type FinalTarget = T;
+
+    type AtInitial = Identity<S, S>;
+
+    fn at_initial(&self) -> Self::AtInitial {
+        Identity::mk()
+    }
+
+    type AtFinal = Identity<T, T>;
+
+    fn at_final(&self) -> Self::AtFinal {
+        Identity::mk()
+    }
 }
 
 /// Composition of lenticuloids.
@@ -102,6 +142,18 @@ impl<LF: Lenticuloid, LS: ?Sized> Lenticuloid for Compose<LF, LS>
     type FinalSource = LS::FinalSource;
 
     type FinalTarget = LF::FinalTarget;
+
+    type AtInitial = Compose<LF::AtInitial, LS::AtInitial>;
+
+    fn at_initial(&self) -> Self::AtInitial {
+        Compose::of(self.first.at_initial(), self.second.at_initial())
+    }
+
+    type AtFinal = Compose<LF::AtFinal, LS::AtFinal>;
+
+    fn at_final(&self) -> Self::AtFinal {
+        Compose::of(self.first.at_final(), self.second.at_final())
+    }
 }
 
 /// The inversion of a lenticuloid.
@@ -125,6 +177,18 @@ impl<L: Lenticuloid + ?Sized> Lenticuloid for Invert<L> {
     type FinalSource = L::InitialTarget;
 
     type FinalTarget = L::InitialSource;
+
+    type AtInitial = Invert<L::AtFinal>;
+
+    fn at_initial(&self) -> Self::AtInitial {
+        Invert::of(self.deinvert.at_final())
+    }
+
+    type AtFinal = Invert<L::AtInitial>;
+
+    fn at_final(&self) -> Self::AtFinal {
+        Invert::of(self.deinvert.at_initial())
+    }
 }
 
 mod partial_lens;

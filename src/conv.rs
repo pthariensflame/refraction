@@ -6,17 +6,27 @@ use std::marker::PhantomData;
 use super::{Iso, Lens, Lenticuloid, PartialLens, Prism};
 
 /// An isomorphism family that handles lossless conversions by owned value.
-pub struct Conv<S, A, T = S, B = A> {
+pub struct Conv<S, A = S, T = S, B = A> {
     phantom_sa: PhantomData<Fn(S) -> A>,
     phantom_bt: PhantomData<Fn(B) -> T>,
 }
 
 impl<S, A, T, B> Conv<S, A, T, B>
     where S: Into<A>,
-          B: Into<T>
+          A: Into<S>,
+          B: Into<T>,
+          T: Into<B>
 {
+    #[cfg(not(feature = "nightly"))]
     #[inline]
     pub fn mk() -> Self {
+        Conv { phantom_sa: PhantomData,
+               phantom_bt: PhantomData, }
+    }
+
+    #[cfg(feature = "nightly")]
+    #[inline]
+    pub const fn mk() -> Self {
         Conv { phantom_sa: PhantomData,
                phantom_bt: PhantomData, }
     }
@@ -24,7 +34,9 @@ impl<S, A, T, B> Conv<S, A, T, B>
 
 impl<S, A, T, B> Debug for Conv<S, A, T, B>
     where S: Into<A>,
-          B: Into<T>
+          A: Into<S>,
+          B: Into<T>,
+          T: Into<B>
 {
     fn fmt(&self, fm: &mut Formatter) -> fmt::Result {
         fm.debug_struct("Conv")
@@ -36,7 +48,9 @@ impl<S, A, T, B> Debug for Conv<S, A, T, B>
 
 impl<S, A, T, B> Clone for Conv<S, A, T, B>
     where S: Into<A>,
-          B: Into<T>
+          A: Into<S>,
+          B: Into<T>,
+          T: Into<B>
 {
     #[inline]
     fn clone(&self) -> Self {
@@ -51,13 +65,17 @@ impl<S, A, T, B> Clone for Conv<S, A, T, B>
 
 impl<S, A, T, B> Copy for Conv<S, A, T, B>
     where S: Into<A>,
-          B: Into<T>
+          A: Into<S>,
+          B: Into<T>,
+          T: Into<B>
 {
 }
 
 impl<S, A, T, B> Default for Conv<S, A, T, B>
     where S: Into<A>,
-          B: Into<T>
+          A: Into<S>,
+          B: Into<T>,
+          T: Into<B>
 {
     #[inline]
     fn default() -> Self {
@@ -67,7 +85,9 @@ impl<S, A, T, B> Default for Conv<S, A, T, B>
 
 impl<S, A, T, B> Lenticuloid for Conv<S, A, T, B>
     where S: Into<A>,
-          B: Into<T>
+          A: Into<S>,
+          B: Into<T>,
+          T: Into<B>
 {
     type InitialSource = S;
 
@@ -76,11 +96,25 @@ impl<S, A, T, B> Lenticuloid for Conv<S, A, T, B>
     type FinalSource = T;
 
     type FinalTarget = B;
+
+    type AtInitial = Conv<S, A, S, A>;
+
+    fn at_initial(&self) -> Self::AtInitial {
+        Conv::mk()
+    }
+
+    type AtFinal = Conv<T, B, T, B>;
+
+    fn at_final(&self) -> Self::AtFinal {
+        Conv::mk()
+    }
 }
 
 impl<S, A, T, B> PartialLens for Conv<S, A, T, B>
     where S: Into<A>,
-          B: Into<T>
+          A: Into<S>,
+          B: Into<T>,
+          T: Into<B>
 {
     #[inline]
     fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
@@ -118,7 +152,9 @@ impl<S, A, T, B> PartialLens for Conv<S, A, T, B>
 
 impl<S, A, T, B> Lens for Conv<S, A, T, B>
     where S: Into<A>,
-          B: Into<T>
+          A: Into<S>,
+          B: Into<T>,
+          T: Into<B>
 {
     #[inline]
     fn get(&self, v: Self::InitialSource) -> Self::InitialTarget {
@@ -128,7 +164,9 @@ impl<S, A, T, B> Lens for Conv<S, A, T, B>
 
 impl<S, A, T, B> Prism for Conv<S, A, T, B>
     where S: Into<A>,
-          B: Into<T>
+          A: Into<S>,
+          B: Into<T>,
+          T: Into<B>
 {
     #[inline]
     fn inject(&self, v: Self::FinalTarget) -> Self::FinalSource {
@@ -138,24 +176,34 @@ impl<S, A, T, B> Prism for Conv<S, A, T, B>
 
 impl<S, A, T, B> Iso for Conv<S, A, T, B>
     where S: Into<A>,
-          B: Into<T>
+          A: Into<S>,
+          B: Into<T>,
+          T: Into<B>
 {
 }
 
 /// An isomorphism family that handles lossless conversions by shared reference.
-pub struct ConvRef<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> {
+pub struct ConvRef<'a, S: ?Sized + 'a, A: ?Sized + 'a = S, T: ?Sized + 'a = S, B: ?Sized + 'a = T> {
     phantom_sa: PhantomData<Fn(&'a S) -> &'a A>,
     phantom_bt: PhantomData<Fn(&'a B) -> &'a T>,
 }
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> ConvRef<'a, S, A, T, B>
     where S: AsRef<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsRef<S> + 'a,
+          T: AsRef<B> + 'a,
           B: AsRef<T> + 'a
 {
+    #[cfg(not(feature = "nightly"))]
     #[inline]
     pub fn mk() -> Self {
+        ConvRef { phantom_sa: PhantomData,
+                  phantom_bt: PhantomData, }
+    }
+
+    #[cfg(feature = "nightly")]
+    #[inline]
+    pub const fn mk() -> Self {
         ConvRef { phantom_sa: PhantomData,
                   phantom_bt: PhantomData, }
     }
@@ -163,8 +211,8 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> ConvRef<'a, S, A, T, B>
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Debug for ConvRef<'a, S, A, T, B>
     where S: AsRef<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsRef<S> + 'a,
+          T: AsRef<B> + 'a,
           B: AsRef<T> + 'a
 {
     fn fmt(&self, fm: &mut Formatter) -> fmt::Result {
@@ -177,8 +225,8 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Debug for ConvRef<'a, S, A,
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Clone for ConvRef<'a, S, A, T, B>
     where S: AsRef<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsRef<S> + 'a,
+          T: AsRef<B> + 'a,
           B: AsRef<T> + 'a
 {
     #[inline]
@@ -194,16 +242,16 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Clone for ConvRef<'a, S, A,
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Copy for ConvRef<'a, S, A, T, B>
     where S: AsRef<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsRef<S> + 'a,
+          T: AsRef<B> + 'a,
           B: AsRef<T> + 'a
 {
 }
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Default for ConvRef<'a, S, A, T, B>
     where S: AsRef<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsRef<S> + 'a,
+          T: AsRef<B> + 'a,
           B: AsRef<T> + 'a
 {
     #[inline]
@@ -214,8 +262,8 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Default for ConvRef<'a, S, 
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Lenticuloid for ConvRef<'a, S, A, T, B>
     where S: AsRef<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsRef<S> + 'a,
+          T: AsRef<B> + 'a,
           B: AsRef<T> + 'a
 {
     type InitialSource = &'a S;
@@ -225,12 +273,24 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Lenticuloid for ConvRef<'a,
     type FinalSource = &'a T;
 
     type FinalTarget = &'a B;
+
+    type AtInitial = ConvRef<'a, S, A, S, A>;
+
+    fn at_initial(&self) -> Self::AtInitial {
+        ConvRef::mk()
+    }
+
+    type AtFinal = ConvRef<'a, T, B, T, B>;
+
+    fn at_final(&self) -> Self::AtFinal {
+        ConvRef::mk()
+    }
 }
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> PartialLens for ConvRef<'a, S, A, T, B>
     where S: AsRef<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsRef<S> + 'a,
+          T: AsRef<B> + 'a,
           B: AsRef<T> + 'a
 {
     #[inline]
@@ -268,8 +328,8 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> PartialLens for ConvRef<'a,
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Lens for ConvRef<'a, S, A, T, B>
     where S: AsRef<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsRef<S> + 'a,
+          T: AsRef<B> + 'a,
           B: AsRef<T> + 'a
 {
     #[inline]
@@ -280,8 +340,8 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Lens for ConvRef<'a, S, A, 
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Prism for ConvRef<'a, S, A, T, B>
     where S: AsRef<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsRef<S> + 'a,
+          T: AsRef<B> + 'a,
           B: AsRef<T> + 'a
 {
     #[inline]
@@ -292,27 +352,35 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Prism for ConvRef<'a, S, A,
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Iso for ConvRef<'a, S, A, T, B>
     where S: AsRef<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsRef<S> + 'a,
+          T: AsRef<B> + 'a,
           B: AsRef<T> + 'a
 {
 }
 
 /// An isomorphism family that handles lossless conversions by mutable
 /// reference.
-pub struct ConvMut<'a, S: ?Sized + 'a, A: ?Sized + 'a, T: ?Sized + 'a, B: ?Sized + 'a> {
+pub struct ConvMut<'a, S: ?Sized + 'a, A: ?Sized + 'a = S, T: ?Sized + 'a = S, B: ?Sized + 'a = T> {
     phantom_sa: PhantomData<Fn(&'a mut S) -> &'a mut A>,
     phantom_bt: PhantomData<Fn(&'a mut B) -> &'a mut T>,
 }
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> ConvMut<'a, S, A, T, B>
     where S: AsMut<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsMut<S> + 'a,
+          T: AsMut<B> + 'a,
           B: AsMut<T> + 'a
 {
+    #[cfg(not(feature = "nightly"))]
     #[inline]
     pub fn mk() -> Self {
+        ConvMut { phantom_sa: PhantomData,
+                  phantom_bt: PhantomData, }
+    }
+
+    #[cfg(feature = "nightly")]
+    #[inline]
+    pub const fn mk() -> Self {
         ConvMut { phantom_sa: PhantomData,
                   phantom_bt: PhantomData, }
     }
@@ -320,8 +388,8 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> ConvMut<'a, S, A, T, B>
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Debug for ConvMut<'a, S, A, T, B>
     where S: AsMut<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsMut<S> + 'a,
+          T: AsMut<B> + 'a,
           B: AsMut<T> + 'a
 {
     fn fmt(&self, fm: &mut Formatter) -> fmt::Result {
@@ -334,8 +402,8 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Debug for ConvMut<'a, S, A,
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Clone for ConvMut<'a, S, A, T, B>
     where S: AsMut<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsMut<S> + 'a,
+          T: AsMut<B> + 'a,
           B: AsMut<T> + 'a
 {
     #[inline]
@@ -351,16 +419,16 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Clone for ConvMut<'a, S, A,
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Copy for ConvMut<'a, S, A, T, B>
     where S: AsMut<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsMut<S> + 'a,
+          T: AsMut<B> + 'a,
           B: AsMut<T> + 'a
 {
 }
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Default for ConvMut<'a, S, A, T, B>
     where S: AsMut<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsMut<S> + 'a,
+          T: AsMut<B> + 'a,
           B: AsMut<T> + 'a
 {
     #[inline]
@@ -371,8 +439,8 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Default for ConvMut<'a, S, 
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Lenticuloid for ConvMut<'a, S, A, T, B>
     where S: AsMut<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsMut<S> + 'a,
+          T: AsMut<B> + 'a,
           B: AsMut<T> + 'a
 {
     type InitialSource = &'a mut S;
@@ -382,12 +450,24 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Lenticuloid for ConvMut<'a,
     type FinalSource = &'a mut T;
 
     type FinalTarget = &'a mut B;
+
+    type AtInitial = ConvMut<'a, S, A, S, A>;
+
+    fn at_initial(&self) -> Self::AtInitial {
+        ConvMut::mk()
+    }
+
+    type AtFinal = ConvMut<'a, T, B, T, B>;
+
+    fn at_final(&self) -> Self::AtFinal {
+        ConvMut::mk()
+    }
 }
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> PartialLens for ConvMut<'a, S, A, T, B>
     where S: AsMut<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsMut<S> + 'a,
+          T: AsMut<B> + 'a,
           B: AsMut<T> + 'a
 {
     #[inline]
@@ -426,8 +506,8 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> PartialLens for ConvMut<'a,
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Lens for ConvMut<'a, S, A, T, B>
     where S: AsMut<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsMut<S> + 'a,
+          T: AsMut<B> + 'a,
           B: AsMut<T> + 'a
 {
     #[inline]
@@ -438,8 +518,8 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Lens for ConvMut<'a, S, A, 
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Prism for ConvMut<'a, S, A, T, B>
     where S: AsMut<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsMut<S> + 'a,
+          T: AsMut<B> + 'a,
           B: AsMut<T> + 'a
 {
     #[inline]
@@ -450,8 +530,8 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Prism for ConvMut<'a, S, A,
 
 impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> Iso for ConvMut<'a, S, A, T, B>
     where S: AsMut<A> + 'a,
-          A: 'a,
-          T: 'a,
+          A: AsMut<S> + 'a,
+          T: AsMut<B> + 'a,
           B: AsMut<T> + 'a
 {
 }
