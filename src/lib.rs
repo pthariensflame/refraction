@@ -10,9 +10,28 @@
 //! - `const fn` support
 
 #![cfg_attr(feature = "nightly", feature(never_type, const_fn))]
+#![cfg_attr(feature = "cargo-clippy", allow(expl_impl_clone_on_copy, type_complexity))]
 
 use std::fmt;
 use std::marker::PhantomData;
+
+/// Some utility functions used inside this crate, but possibly useful for
+/// others as well.
+pub mod util {
+    pub fn once_to_mut<'a, X, Y, F>(f_once: F) -> Box<FnMut(X) -> Option<Y> + 'a>
+        where F: FnOnce(X) -> Y + 'a
+    {
+        let mut f_opt: Option<F> = Some(f_once);
+        Box::new(move |x| f_opt.take().map(move |f| f(x)))
+    }
+
+    pub fn once_to_mut_flatten<'a, X, Y, F>(f_once: F) -> Box<FnMut(X) -> Option<Y> + 'a>
+        where F: FnOnce(X) -> Option<Y> + 'a
+    {
+        let mut f_opt: Option<F> = Some(f_once);
+        Box::new(move |x| f_opt.take().and_then(move |f| f(x)))
+    }
+}
 
 /// The supertype of all lenticuloids.
 pub trait Lenticuloid {

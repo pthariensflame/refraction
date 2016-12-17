@@ -3,7 +3,7 @@
 
 use std::fmt::{self, Debug, Formatter};
 use std::marker::PhantomData;
-use super::{Iso, Lens, Lenticuloid, PartialLens, Prism};
+use super::{Injector, Iso, Lens, Lenticuloid, PartialLens, Prism, util};
 
 /// An isomorphism family that handles lossless conversions by owned value.
 pub struct Conv<S, A = S, T = S, B = A> {
@@ -119,6 +119,16 @@ impl<S, A, T, B> PartialLens for Conv<S, A, T, B>
     #[inline]
     fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
         Ok(v.into())
+    }
+
+    #[inline]
+    fn try_get_inject(&self,
+                      v: Self::InitialSource)
+                      -> Result<(Self::InitialTarget,
+                                 Injector<Self::FinalTarget, Self::FinalSource>),
+                                Self::FinalSource> {
+        Ok((v.into(),
+            util::once_to_mut(move |x: Self::FinalTarget| -> Self::FinalSource { x.into() })))
     }
 
     #[inline]
@@ -299,6 +309,16 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> PartialLens for ConvRef<'a,
     }
 
     #[inline]
+    fn try_get_inject(&self,
+                      v: Self::InitialSource)
+                      -> Result<(Self::InitialTarget,
+                                 Injector<Self::FinalTarget, Self::FinalSource>),
+                                Self::FinalSource> {
+        Ok((v.as_ref(),
+            util::once_to_mut(move |x: Self::FinalTarget| -> Self::FinalSource { x.as_ref() })))
+    }
+
+    #[inline]
     fn set(&self, _v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource {
         x.as_ref()
     }
@@ -473,6 +493,16 @@ impl<'a, S: ?Sized, A: ?Sized, T: ?Sized, B: ?Sized> PartialLens for ConvMut<'a,
     #[inline]
     fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
         Ok(v.as_mut())
+    }
+
+    #[inline]
+    fn try_get_inject(&self,
+                      v: Self::InitialSource)
+                      -> Result<(Self::InitialTarget,
+                                 Injector<Self::FinalTarget, Self::FinalSource>),
+                                Self::FinalSource> {
+        Ok((v.as_mut(),
+            util::once_to_mut(move |x: Self::FinalTarget| -> Self::FinalSource { x.as_mut() })))
     }
 
     #[inline]

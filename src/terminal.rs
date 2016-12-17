@@ -4,7 +4,7 @@
 
 use std::fmt::{self, Debug, Formatter};
 use std::marker::PhantomData;
-use super::{Lens, Lenticuloid, PartialLens, Prism};
+use super::{Injector, Lens, Lenticuloid, PartialLens, Prism, util};
 
 #[cfg(feature = "nightly")]
 /// A `Lens` to "extract" anything from `!`.
@@ -76,8 +76,13 @@ impl<A, B> Lenticuloid for FromNever<A, B> {
 }
 
 #[cfg(feature = "nightly")]
+#[cfg_attr(feature = "cargo-clippy", allow(unreachable_code))]
 impl<A, B> PartialLens for FromNever<A, B> {
     fn try_get(&self, v: !) -> Result<A, !> {
+        v
+    }
+
+    fn try_get_inject(&self, v: !) -> Result<(A, Injector<B, !>), !> {
         v
     }
 
@@ -93,7 +98,7 @@ impl<A, B> PartialLens for FromNever<A, B> {
         v
     }
 
-    fn modify_with<F, X>(&self, v: !, f: F) -> (!, Option<X>)
+    fn modify_with<F, X>(&self, v: !, _f: F) -> (!, Option<X>)
         where F: FnOnce(A) -> (B, X)
     {
         v
@@ -101,6 +106,7 @@ impl<A, B> PartialLens for FromNever<A, B> {
 }
 
 #[cfg(feature = "nightly")]
+#[cfg_attr(feature = "cargo-clippy", allow(unreachable_code))]
 impl<A, B> Lens for FromNever<A, B> {
     fn get(&self, v: !) -> A {
         v
@@ -177,8 +183,13 @@ impl<S> Lenticuloid for ToNever<S> {
 }
 
 #[cfg(feature = "nightly")]
+#[cfg_attr(feature = "cargo-clippy", allow(unreachable_code))]
 impl<S> PartialLens for ToNever<S> {
     fn try_get(&self, v: S) -> Result<!, S> {
+        Err(v)
+    }
+
+    fn try_get_inject(&self, v: S) -> Result<(!, Injector<!, S>), S> {
         Err(v)
     }
 
@@ -196,7 +207,7 @@ impl<S> PartialLens for ToNever<S> {
         v
     }
 
-    fn modify_with<F, X>(&self, v: S, f: F) -> (S, Option<X>)
+    fn modify_with<F, X>(&self, v: S, _f: F) -> (S, Option<X>)
         where F: FnOnce(!) -> (!, X)
     {
         (v, None)
@@ -204,6 +215,7 @@ impl<S> PartialLens for ToNever<S> {
 }
 
 #[cfg(feature = "nightly")]
+#[cfg_attr(feature = "cargo-clippy", allow(unreachable_code))]
 impl<S> Prism for ToNever<S> {
     fn inject(&self, v: !) -> S {
         v
@@ -284,11 +296,15 @@ impl<A, B> PartialLens for FromUnit<A, B> {
         Err(v)
     }
 
+    fn try_get_inject(&self, v: ()) -> Result<(A, Injector<B, ()>), ()> {
+        Err(v)
+    }
+
     fn set(&self, v: (), _x: B) -> () {
         v
     }
 
-    fn exchange(&self, v: (), x: B) -> (Option<A>, ()) {
+    fn exchange(&self, _v: (), _x: B) -> (Option<A>, ()) {
         (None, ())
     }
 
@@ -298,7 +314,7 @@ impl<A, B> PartialLens for FromUnit<A, B> {
         v
     }
 
-    fn modify_with<F, X>(&self, v: (), f: F) -> ((), Option<X>)
+    fn modify_with<F, X>(&self, _v: (), _f: F) -> ((), Option<X>)
         where F: FnOnce(A) -> (B, X)
     {
         ((), None)
@@ -385,6 +401,10 @@ impl<S> PartialLens for ToUnit<S> {
         Ok(())
     }
 
+    fn try_get_inject(&self, v: S) -> Result<((), Injector<(), S>), S> {
+        Ok(((), util::once_to_mut(|_| v)))
+    }
+
     fn set(&self, v: S, _x: ()) -> S {
         v
     }
@@ -393,7 +413,8 @@ impl<S> PartialLens for ToUnit<S> {
         (Some(()), v)
     }
 
-    fn modify<F: FnOnce(()) -> ()>(&self, v: S, _f: F) -> S {
+    fn modify<F: FnOnce(()) -> ()>(&self, v: S, f: F) -> S {
+        f(());
         v
     }
 

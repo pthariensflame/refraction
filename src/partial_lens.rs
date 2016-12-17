@@ -1,11 +1,25 @@
-use super::{Compose, Identity, Invert, Iso, Lens, Lenticuloid, Prism};
+use super::{Compose, Identity, Invert, Iso, Lenticuloid, util};
+
+pub type Injector<'l, X, Y> = Box<FnMut(X) -> Option<Y> + 'l>;
 
 /// The supertype of all partial lens families.
 pub trait PartialLens: Lenticuloid
     where Self::AtInitial: PartialLens,
           Self::AtFinal: PartialLens
 {
-    fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource>;
+    fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
+        self.try_get_inject(v).map(|(x, _)| x)
+    }
+
+    /// This signature is somewhat hacky; it awaits resolution of the `FnBox`
+    /// issue for better design. Notably, the injection function returned by
+    /// this method will (if law-abiding) only return `Some` exactly once;
+    /// every time afterwards, it will return `None`.
+    fn try_get_inject(&self,
+                      v: Self::InitialSource)
+                      -> Result<(Self::InitialTarget,
+                                 Injector<Self::FinalTarget, Self::FinalSource>),
+                                Self::FinalSource>;
 
     fn set(&self, v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource {
         self.modify(v, |_| x)
@@ -33,6 +47,11 @@ impl<S, T> PartialLens for Identity<S, T> {
     #[inline]
     fn try_get(&self, v: S) -> Result<S, T> {
         Ok(v)
+    }
+
+    #[inline]
+    fn try_get_inject(&self, v: S) -> Result<(S, Injector<T, T>), T> {
+        Ok((v, util::once_to_mut(|x| x)))
     }
 
     #[inline]
@@ -66,7 +85,31 @@ impl<LF: PartialLens, LS: ?Sized> PartialLens for Compose<LF, LS>
 {
     fn try_get(&self, v: Self::InitialSource) -> Result<Self::InitialTarget, Self::FinalSource> {
         let Compose { first: ref lf, second: ref ls } = *self;
-        ()
+        ls.try_get_inject(v).and_then(move |(q, mut inj)| {
+            lf.try_get(q).map_err(move |x| inj(x).unwrap_or_else(|| unreachable!()))
+        })
+    }
+
+    fn try_get_inject(&self,
+                      v: Self::InitialSource)
+                      -> Result<(Self::InitialTarget,
+                                 Injector<Self::FinalTarget, Self::FinalSource>),
+                                Self::FinalSource> {
+        let Compose { first: ref lf, second: ref ls } = *self;
+        ls.try_get_inject(v).and_then(move |(q, mut inj_q)| {
+            let res = lf.try_get_inject(q).map(|(x, mut inj_x)| {
+                (x, move |y| inj_x(y).unwrap_or_else(|| unreachable!()))
+            });
+            match res {
+                Ok((x, mut inj_x)) => {
+                    Ok((x,
+                        util::once_to_mut(move |y| {
+                            inj_q(inj_x(y)).unwrap_or_else(|| unreachable!())
+                        })))
+                }
+                Err(q) => Err(inj_q(q).unwrap_or_else(|| unreachable!())),
+            }
+        })
     }
 
     fn set(&self, v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource {
@@ -108,6 +151,15 @@ impl<L: Iso> PartialLens for Invert<L>
     }
 
     #[inline]
+    fn try_get_inject(&self,
+                      v: Self::InitialSource)
+                      -> Result<(Self::InitialTarget,
+                                 Injector<Self::FinalTarget, Self::FinalSource>),
+                                Self::FinalSource> {
+        Ok((self.deinvert.inject(v), util::once_to_mut(move |x| self.deinvert.get(x))))
+    }
+
+    #[inline]
     fn set(&self, _v: Self::InitialSource, x: Self::FinalTarget) -> Self::FinalSource {
         self.deinvert.get(x)
     }
@@ -117,7 +169,7 @@ impl<L: Iso> PartialLens for Invert<L>
                 v: Self::InitialSource,
                 x: Self::FinalTarget)
                 -> (Option<Self::InitialTarget>, Self::FinalSource) {
-        let ref l = self.deinvert;
+        let l = &self.deinvert;
         (Some(l.inject(v)), l.get(x))
     }
 
@@ -125,7 +177,7 @@ impl<L: Iso> PartialLens for Invert<L>
     fn modify<F>(&self, v: Self::InitialSource, f: F) -> Self::FinalSource
         where F: FnOnce(Self::InitialTarget) -> Self::FinalTarget
     {
-        let ref l = self.deinvert;
+        let l = &self.deinvert;
         l.get(f(l.inject(v)))
     }
 
@@ -133,7 +185,7 @@ impl<L: Iso> PartialLens for Invert<L>
     fn modify_with<F, X>(&self, v: Self::InitialSource, f: F) -> (Self::FinalSource, Option<X>)
         where F: FnOnce(Self::InitialTarget) -> (Self::FinalTarget, X)
     {
-        let ref l = self.deinvert;
+        let l = &self.deinvert;
         let (x, ret) = f(l.inject(v));
         (l.get(x), Some(ret))
     }
