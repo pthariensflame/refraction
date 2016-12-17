@@ -2,7 +2,7 @@
 name = "refraction"
 version = "0.1.0"
 authors = ["Alexander Altman <alexanderaltman@me.com>"]
-description = ""
+description = "A general-purpose lens library for Rust."
 readme = "README.md"
 license = "Apache-2.0"
 homepage = "https://github.com/pthariensflame/refraction"
