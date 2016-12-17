@@ -76,7 +76,7 @@ impl<A, B> Lenticuloid for FromNever<A, B> {
 }
 
 #[cfg(feature = "nightly")]
-#[cfg_attr(feature = "cargo-clippy", allow(unreachable_code))]
+#[allow(unreachable_code)]
 impl<A, B> PartialLens for FromNever<A, B> {
     fn try_get(&self, v: !) -> Result<A, !> {
         v
@@ -106,7 +106,7 @@ impl<A, B> PartialLens for FromNever<A, B> {
 }
 
 #[cfg(feature = "nightly")]
-#[cfg_attr(feature = "cargo-clippy", allow(unreachable_code))]
+#[allow(unreachable_code)]
 impl<A, B> Lens for FromNever<A, B> {
     fn get(&self, v: !) -> A {
         v
@@ -183,7 +183,7 @@ impl<S> Lenticuloid for ToNever<S> {
 }
 
 #[cfg(feature = "nightly")]
-#[cfg_attr(feature = "cargo-clippy", allow(unreachable_code))]
+#[allow(unreachable_code)]
 impl<S> PartialLens for ToNever<S> {
     fn try_get(&self, v: S) -> Result<!, S> {
         Err(v)
@@ -215,7 +215,7 @@ impl<S> PartialLens for ToNever<S> {
 }
 
 #[cfg(feature = "nightly")]
-#[cfg_attr(feature = "cargo-clippy", allow(unreachable_code))]
+#[allow(unreachable_code)]
 impl<S> Prism for ToNever<S> {
     fn inject(&self, v: !) -> S {
         v

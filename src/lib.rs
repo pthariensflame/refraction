@@ -8,12 +8,14 @@
 //!
 //! - Lenticuloids that deal with the `!` type
 //! - `const fn` support
+//! - More efficient implementation of some macros
 
 #![cfg_attr(feature = "nightly", feature(never_type, const_fn))]
 #![cfg_attr(feature = "cargo-clippy", allow(expl_impl_clone_on_copy, type_complexity))]
 
 use std::fmt;
 use std::marker::PhantomData;
+extern crate nodrop;
 
 /// Some utility functions used inside this crate, but possibly useful for
 /// others as well.

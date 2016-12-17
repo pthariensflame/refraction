@@ -1,6 +1,6 @@
 [package]
 name = "refraction"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Alexander Altman <alexanderaltman@me.com>"]
 description = "A general-purpose lens library for Rust."
 readme = "README.md"
@@ -8,12 +8,13 @@ license = "Apache-2.0"
 homepage = "https://github.com/pthariensflame/refraction"
 repository = "https://github.com/pthariensflame/refraction"
 documentation = "https://docs.rs/crate/refraction"
-keywords = ["lens", "prism", "isomorphism", "property"]
+keywords = ["lens", "prism", "isomorphism", "lenticuloid", "property"]
 
 [dependencies]
+nodrop = "0.1.8"
 
 [dev-dependencies]
 # quickcheck = "*"
 
 [features]
-nightly = []
+nightly = ["nodrop/use_union"]
