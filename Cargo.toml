@@ -1,6 +1,6 @@
 [package]
 name = "refraction"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Alexander Altman <alexanderaltman@me.com>"]
 description = "A general-purpose lens library for Rust."
 readme = "README.md"
