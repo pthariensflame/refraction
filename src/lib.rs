@@ -17,6 +17,12 @@ use std::fmt;
 use std::marker::PhantomData;
 extern crate nodrop;
 
+/// A [prelude module](https://doc.rust-lang.org/std/prelude/#other-preludes)
+/// suitible for glob-importing.
+pub mod prelude {
+    pub use super::{AndThenExt, ComposeExt, Identity, InvertExt, Iso, Lens, PartialLens, Prism};
+}
+
 /// Some utility functions used inside this crate, but possibly useful for
 /// others as well.
 pub mod util {
