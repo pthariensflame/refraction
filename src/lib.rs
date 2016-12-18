@@ -9,6 +9,9 @@
 //! - Lenticuloids that deal with the `!` type
 //! - `const fn` support
 //! - More efficient implementation of some macros
+//!
+//! To get started easily, import
+//! [`refraction::prelude::*`](prelude/index.html).
 
 #![cfg_attr(feature = "nightly", feature(never_type, const_fn))]
 #![cfg_attr(feature = "cargo-clippy", allow(expl_impl_clone_on_copy, type_complexity))]
@@ -20,7 +23,8 @@ extern crate nodrop;
 /// A [prelude module](https://doc.rust-lang.org/std/prelude/#other-preludes)
 /// suitible for glob-importing.
 pub mod prelude {
-    pub use super::{AndThenExt, ComposeExt, Identity, InvertExt, Iso, Lens, PartialLens, Prism};
+    #[doc(no_inline)]
+    pub use ::{AndThenExt, ComposeExt, Identity, InvertExt, Iso, Lens, PartialLens, Prism};
 }
 
 /// Some utility functions used inside this crate, but possibly useful for
